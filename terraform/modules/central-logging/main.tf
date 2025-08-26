@@ -16,7 +16,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "central_logs_buck
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = var.central_logs_kms_key
+      kms_master_key_id = var.central_logs_kms_key_arn
       sse_algorithm     = "aws:kms"
     }
     bucket_key_enabled = true
@@ -91,7 +91,23 @@ data "aws_iam_policy_document" "central_logs_bucket" {
   }
 
   statement {
-    sid     = "AllowConfigListBucket"
+    sid     = "AWSConfigBucketPermissionsCheck"
+    effect  = "Allow"
+    actions = ["s3:GetBucketAcl"]
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+    resources = [aws_s3_bucket.central_logs_bucket.arn]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+  }
+
+  statement {
+    sid     = "AWSConfigBucketExistenceCheck"
     effect  = "Allow"
     actions = ["s3:ListBucket"]
     principals {
@@ -107,7 +123,7 @@ data "aws_iam_policy_document" "central_logs_bucket" {
   }
 
   statement {
-    sid     = "AllowConfigPutObject"
+    sid     = "AWSConfigBucketDelivery"
     effect  = "Allow"
     actions = ["s3:PutObject"]
     principals {
@@ -117,9 +133,25 @@ data "aws_iam_policy_document" "central_logs_bucket" {
     resources = ["${aws_s3_bucket.central_logs_bucket.arn}/config/AWSLogs/${local.account_id}/Config/*"]
     condition {
       test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
+    condition {
+      test     = "StringEquals"
       variable = "aws:SourceAccount"
       values   = [local.account_id]
     }
+  }
+
+  statement {
+    sid     = "AllowCWLGetBucketAcl"
+    effect  = "Allow"
+    actions = ["s3:GetBucketAcl"]
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${local.region}.amazonaws.com"]
+    }
+    resources = [aws_s3_bucket.central_logs_bucket.arn]
   }
 
   statement {
@@ -147,6 +179,11 @@ data "aws_iam_policy_document" "central_logs_bucket" {
       identifiers = ["logs.${local.region}.amazonaws.com"]
     }
     resources = ["${aws_s3_bucket.central_logs_bucket.arn}/cwl-export/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "s3:x-amz-acl"
+      values   = ["bucket-owner-full-control"]
+    }
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
