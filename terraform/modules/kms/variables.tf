@@ -14,4 +14,5 @@ variable "main_username" {
   description = "Your username in the console"
 }
 
+variable "cloudtrail_name" {}
 variable "central_logs_bucket_arn" {}
