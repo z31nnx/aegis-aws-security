@@ -7,8 +7,14 @@ variable "managedby" {}
 # Region
 variable "region" {}
 
+# IAM
+variable "ssm_role_name" {}
+variable "ssm_instance_profile_name" {}
+variable "lambda_cloudtrail_tamper_exec_role_name" {}
+
 # KMS Keys
 variable "main_username" {}
+variable "kms_key_alias" {}
 
 # S3 Central Logging
 variable "central_bucket_name" {}

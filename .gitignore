@@ -177,11 +177,22 @@ dist-ssr
 # User custom scratch area (temporary dev data)
 safe/
 
-# If you have special override/need to force add:
-#!example.py
-
 # Lambda
 **/*.zip
 **/package-lock.json
 **/requirements.txt.lock
-
+lambda-functions/**/.build/
+lambda-functions/**/*.zip
+lambda-functions/**/dist/
+lambda-functions/**/build/
+lambda-functions/**/__pycache__/
+lambda-functions/**/*.pyc
+lambda-functions/**/.pytest_cache/
+lambda-functions/**/.mypy_cache/
+lambda-functions/**/.coverage
+lambda-functions/**/coverage/
+lambda-functions/**/venv/
+lambda-functions/**/.venv/
+lambda-functions/**/node_modules/
+lambda-functions/**/npm-debug.log
+lambda-functions/**/yarn-error.log
