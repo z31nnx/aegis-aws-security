@@ -4,7 +4,3 @@ variable "global_tags" {
 
 variable "config_name" {}
 variable "central_logs_bucket_name" {}
-variable "central_logs_bucket_prefix" {
-  type    = string
-  default = "config"
-}

@@ -3,7 +3,7 @@ data "aws_iam_role" "config_slr" {
 }
 
 resource "aws_config_configuration_recorder" "aegis_config_recorder" {
-  name     = "${var.config_name}-config-recorder"
+  name     = "${var.config_name}-recorder"
   role_arn = data.aws_iam_role.config_slr.arn
 
   recording_group {
@@ -19,8 +19,15 @@ resource "aws_config_configuration_recorder" "aegis_config_recorder" {
 resource "aws_config_delivery_channel" "aegis_config_delivery_channel" {
   name           = "${var.config_name}-delivery-channel"
   s3_bucket_name = var.central_logs_bucket_name
-  s3_key_prefix  = var.central_logs_bucket_prefix
+  s3_key_prefix  = "config"
 }
+
+resource "aws_config_configuration_recorder_status" "aegis_config_status" {
+  name       = aws_config_configuration_recorder.aegis_config_recorder.name
+  is_enabled = true
+  depends_on = [aws_config_delivery_channel.aegis_config_delivery_channel]
+}
+
 
 resource "aws_config_config_rule" "ec2_ebs_encryption_by_default" {
   name = "${var.config_name}-ec2-ebs-encryption-by-default"
