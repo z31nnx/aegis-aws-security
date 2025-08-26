@@ -41,14 +41,14 @@ data "aws_iam_policy_document" "central_logs_policy" {
     resources = ["*"]
   }
 
-statement {
-    sid     = "AllowS3ViaServiceForThisBucket"
-    effect  = "Allow"
-    principals { 
-      type = "Service" 
-      identifiers = ["s3.amazonaws.com"] 
-      }
-    actions  = ["kms:GenerateDataKey*","kms:Encrypt","kms:Decrypt","kms:DescribeKey"]
+  statement {
+    sid    = "AllowS3ViaServiceForThisBucket"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
+    actions   = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
     resources = ["*"]
     condition {
       test     = "StringEquals"
@@ -60,41 +60,41 @@ statement {
       variable = "kms:EncryptionContext:aws:s3:arn"
       values   = ["${var.central_logs_bucket_arn}/*"]
     }
-  }  
+  }
 
   # Allow CloudTrail to use the key (GenerateDataKey/Encrypt/Decrypt/Describe)
 
-statement {
-  sid     = "AllowCloudTrailGenerateDataKey"
-  effect  = "Allow"
-  principals { 
-    type = "Service"
-    identifiers = ["cloudtrail.amazonaws.com"] 
+  statement {
+    sid    = "AllowCloudTrailGenerateDataKey"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
     }
-  actions  = ["kms:GenerateDataKey*"]
-  resources = ["*"]
-  condition {
-    test     = "StringEquals"
-    variable = "aws:SourceArn"
-    values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.cloudtrail_name}"]
+    actions   = ["kms:GenerateDataKey*"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.cloudtrail_name}"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "kms:EncryptionContext:aws:cloudtrail:arn"
+      values   = ["arn:aws:cloudtrail:*:${local.account_id}:trail/*"]
+    }
   }
-  condition {
-    test     = "StringLike"
-    variable = "kms:EncryptionContext:aws:cloudtrail:arn"
-    values   = ["arn:aws:cloudtrail:*:${local.account_id}:trail/*"]
-  }
-}
 
-statement {
-  sid     = "AllowCloudTrailDescribeKey"
-  effect  = "Allow"
-  principals { 
-    type = "Service" 
-    identifiers = ["cloudtrail.amazonaws.com"]
-     }
-  actions  = ["kms:DescribeKey"]
-  resources = ["*"]
-}
+  statement {
+    sid    = "AllowCloudTrailDescribeKey"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
+    }
+    actions   = ["kms:DescribeKey"]
+    resources = ["*"]
+  }
 
   # Allow AWS Config 
   statement {
@@ -118,26 +118,26 @@ statement {
     }
   }
 
-statement {
-  sid     = "AllowCloudTrailCreateGrantForAWSResource"
-  effect  = "Allow"
-  principals { 
-    type = "Service" 
-    identifiers = ["cloudtrail.amazonaws.com"] 
+  statement {
+    sid    = "AllowCloudTrailCreateGrantForAWSResource"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["cloudtrail.amazonaws.com"]
     }
-  actions  = ["kms:CreateGrant"]
-  resources = ["*"]
-  condition {
-    test     = "Bool"
-    variable = "kms:GrantIsForAWSResource"
-    values   = ["true"]
+    actions   = ["kms:CreateGrant"]
+    resources = ["*"]
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.cloudtrail_name}"]
+    }
   }
-  condition {
-    test     = "StringEquals"
-    variable = "aws:SourceArn"
-    values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.cloudtrail_name}"]
-  }
-}
 
   statement {
     sid     = "AllowS3ForConfigWrites"

@@ -1,5 +1,5 @@
 resource "aws_cloudtrail" "aegis" {
-  name                          = "${var.cloudtrail_name}"
+  name                          = var.cloudtrail_name
   s3_bucket_name                = var.central_logs_bucket_name
   s3_key_prefix                 = "cloudtrail"
   region                        = var.region

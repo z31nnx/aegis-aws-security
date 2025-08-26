@@ -1,6 +1,6 @@
 resource "aws_s3_bucket" "central_logs_bucket" {
-  bucket = var.central_bucket_name
-  force_destroy = true # turn off when its critical 
+  bucket        = var.central_bucket_name
+  force_destroy = true # Default = false
 
   tags = merge(local.global_tags)
 }

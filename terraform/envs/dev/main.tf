@@ -12,12 +12,29 @@ provider "aws" {
   region = var.region
 }
 
+module "ebs" {
+  source = "../../modules/ebs"
+}
+
+module "ssm" {
+  source                    = "../../modules/ssm"
+  ssm_role_name             = var.ssm_role_name
+  ssm_instance_profile_name = var.ssm_instance_profile_name
+  global_tags               = local.global_tags
+}
+
+module "sns" {
+  source      = "../../modules/sns"
+  global_tags = local.global_tags
+}
+
 module "kms" {
   source                  = "../../modules/kms"
-  central_logs_bucket_arn = module.central-logging.central_logs_bucket_arn
-  cloudtrail_name = var.cloudtrail_name
+  cloudtrail_name         = var.cloudtrail_name
   region                  = var.region
   main_username           = var.main_username
+  kms_key_alias           = var.kms_key_alias
+  central_logs_bucket_arn = module.central-logging.central_logs_bucket_arn
   global_tags             = local.global_tags
 }
 
@@ -27,6 +44,12 @@ module "central-logging" {
   central_bucket_name      = var.central_bucket_name
   central_logs_kms_key_arn = module.kms.central_logs_key_arn
   global_tags              = local.global_tags
+}
+
+module "guardduty" {
+  source      = "../../modules/guardduty"
+  region      = var.region
+  global_tags = local.global_tags
 }
 
 module "cloudtrail" {
@@ -43,4 +66,12 @@ module "config" {
   config_name              = var.config_name
   central_logs_bucket_name = module.central-logging.central_logs_bucket_name
   global_tags              = local.global_tags
+}
+
+module "lambda" {
+  source                                  = "../../modules/lambda"
+  lambda_cloudtrail_tamper_exec_role_name = var.lambda_cloudtrail_tamper_exec_role_name
+  sns_alerts_high_arn                     = module.sns.sns_alerts_high_topic_arn
+  sns_alerts_medium_arn                   = module.sns.sns_alerts_medium_topic_arn
+  global_tags                             = local.global_tags
 }
