@@ -84,6 +84,26 @@ data "aws_iam_policy_document" "central_logs_policy" {
       values   = [local.account_id]
     }
   }
+  statement {
+    sid     = "AllowS3ForConfigWrites"
+    effect  = "Allow"
+    actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
+    principals {
+      type        = "Service"
+      identifiers = ["s3.amazonaws.com"]
+    }
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["s3.amazonaws.com"]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "kms:EncryptionContext:aws:s3:arn"
+      values   = ["${var.central_logs_bucket_arn}/*"]
+    }
+  }
 
   # Allow CloudWatch Logs (for KMS-encrypted log groups / exports)
   statement {
