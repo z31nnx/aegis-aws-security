@@ -70,8 +70,20 @@ module "config" {
 
 module "lambda" {
   source                                  = "../../modules/lambda"
+  lambda_cloudtrail_tamper_function_name  = var.lambda_cloudtrail_tamper_function_name
   lambda_cloudtrail_tamper_exec_role_name = var.lambda_cloudtrail_tamper_exec_role_name
   sns_alerts_high_arn                     = module.sns.sns_alerts_high_topic_arn
   sns_alerts_medium_arn                   = module.sns.sns_alerts_medium_topic_arn
+  central_logs_bucket                     = module.central-logging.central_logs_bucket_name
+  cloudtrail_name                         = module.cloudtrail.cloudtrail_trail_name
+  kms_key_arn                             = module.kms.central_logs_key_arn
   global_tags                             = local.global_tags
+}
+
+module "eventbridge" {
+  source                              = "../../modules/eventbridge"
+  lambda_cloudtrail_tamper_shield_arn = module.lambda.lambda_cloudtrail_tamper_arn
+  cloudtrail_name                     = module.cloudtrail.cloudtrail_trail_name
+  cloudtrail_arn                      = module.cloudtrail.cloudtrail_trail_arn
+  global_tags                         = local.global_tags
 }

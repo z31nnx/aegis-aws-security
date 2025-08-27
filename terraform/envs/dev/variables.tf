@@ -7,10 +7,9 @@ variable "managedby" {}
 # Region
 variable "region" {}
 
-# IAM
+# SSM
 variable "ssm_role_name" {}
 variable "ssm_instance_profile_name" {}
-variable "lambda_cloudtrail_tamper_exec_role_name" {}
 
 # KMS Keys
 variable "main_username" {}
@@ -24,3 +23,7 @@ variable "cloudtrail_name" {}
 
 # Config
 variable "config_name" {}
+
+# Lambda
+variable "lambda_cloudtrail_tamper_function_name" {}
+variable "lambda_cloudtrail_tamper_exec_role_name" {}

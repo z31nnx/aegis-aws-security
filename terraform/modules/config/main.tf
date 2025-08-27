@@ -30,7 +30,7 @@ resource "aws_config_configuration_recorder_status" "aegis_config_status" {
 
 
 resource "aws_config_config_rule" "ec2_ebs_encryption_by_default" {
-  name = "${var.config_name}-ec2-ebs-encryption-by-default"
+  name = "ec2-ebs-encryption-by-default"
   source {
     owner             = "AWS"
     source_identifier = "EC2_EBS_ENCRYPTION_BY_DEFAULT"
@@ -43,7 +43,7 @@ resource "aws_config_config_rule" "ec2_ebs_encryption_by_default" {
 }
 
 resource "aws_config_config_rule" "ec2_imdsv2_check" {
-  name = "${var.config_name}-ec2-imdsv2-check"
+  name = "ec2-imdsv2-check"
   source {
     owner             = "AWS"
     source_identifier = "EC2_IMDSV2_CHECK"
@@ -56,7 +56,7 @@ resource "aws_config_config_rule" "ec2_imdsv2_check" {
 }
 
 resource "aws_config_config_rule" "restricted_common_ports" {
-  name = "${var.config_name}-restricted-common-ports"
+  name = "restricted-common-ports"
   source {
     owner             = "AWS"
     source_identifier = "RESTRICTED_INCOMING_TRAFFIC"
@@ -69,7 +69,7 @@ resource "aws_config_config_rule" "restricted_common_ports" {
 }
 
 resource "aws_config_config_rule" "restricted_ssh" {
-  name = "${var.config_name}-restricted-ssh"
+  name = "restricted-ssh"
   source {
     owner             = "AWS"
     source_identifier = "INCOMING_SSH_DISABLED"
@@ -82,12 +82,26 @@ resource "aws_config_config_rule" "restricted_ssh" {
 }
 
 resource "aws_config_config_rule" "s3_bucket_level_public_access_prohibited" {
-  name = "${var.config_name}-s3-bucket-level-public-access-prohibited"
+  name = "s3-bucket-level-public-access-prohibited"
   source {
     owner             = "AWS"
     source_identifier = "S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED"
   }
   tags = var.global_tags
+  depends_on = [
+    aws_config_configuration_recorder.aegis_config_recorder,
+    aws_config_delivery_channel.aegis_config_delivery_channel
+  ]
+}
+
+resource "aws_config_config_rule" "cloudtrail_enabled" {
+  name = "cloudtrail-enabled"
+  source {
+    owner             = "AWS"
+    source_identifier = "CLOUD_TRAIL_ENABLED"
+  }
+  maximum_execution_frequency = "One_Hour"
+  tags                        = var.global_tags
   depends_on = [
     aws_config_configuration_recorder.aegis_config_recorder,
     aws_config_delivery_channel.aegis_config_delivery_channel
