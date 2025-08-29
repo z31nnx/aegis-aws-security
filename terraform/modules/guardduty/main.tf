@@ -1,10 +1,6 @@
 resource "aws_guardduty_detector" "aegis_guardduty" {
   enable = true
   region = var.region
-
-  tags = merge(
-    local.global_tags
-  )
 }
 
 resource "aws_guardduty_detector_feature" "aegis_detector_s3" {

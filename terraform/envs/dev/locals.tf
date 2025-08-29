@@ -1,8 +1,3 @@
 locals {
-  global_tags = {
-    project     = var.project
-    environment = var.environment
-    owner       = var.owner
-    managedby   = var.managedby
-  }
+  name_prefix = lower("${var.Project}-${var.Environment}")
 }

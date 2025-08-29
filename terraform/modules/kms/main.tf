@@ -4,11 +4,10 @@ resource "aws_kms_key" "central_logs_key" {
   deletion_window_in_days = 30
   policy                  = data.aws_iam_policy_document.central_logs_policy.json
 
-  tags = local.global_tags
 }
 
 resource "aws_kms_alias" "central_logs_key_alias" {
-  name          = "alias/${var.kms_key_alias}"
+  name          = "alias/${var.name_prefix}-${var.kms_key_alias}"
   target_key_id = aws_kms_key.central_logs_key.key_id
 }
 
@@ -76,7 +75,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.cloudtrail_name}"]
+      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
     }
     condition {
       test     = "StringLike"
@@ -135,7 +134,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.cloudtrail_name}"]
+      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
     }
   }
 
