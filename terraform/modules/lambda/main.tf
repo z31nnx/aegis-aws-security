@@ -26,6 +26,14 @@ resource "aws_lambda_function" "lambda_cloudtrail_tamper_function" {
       LOG_VALIDATION = "true"
       ORG_TRAIL      = "false"
       SNS_HIGH       = var.sns_alerts_high_arn
+
+      BASELINE_TAGS_JSON = jsonencode({
+        Project     = var.project
+        Environment = var.environment
+        Owner       = var.owner
+        ManagedBy   = var.managedby
+        Name        = var.cloudtrail_name
+      })
     }
   }
 }

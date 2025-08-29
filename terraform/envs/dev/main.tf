@@ -12,10 +12,10 @@ provider "aws" {
   region = var.region
   default_tags {
     tags = {
-      Project     = var.Project
-      Environment = var.Environment
-      Owner       = var.Owner
-      ManagedBy   = var.ManagedBy
+      Project     = var.project
+      Environment = var.environment
+      Owner       = var.owner
+      ManagedBy   = var.managedby
     }
   }
 }
@@ -33,9 +33,9 @@ module "ssm" {
 
 module "sns" {
   source      = "../../modules/sns"
-  name_prefix = local.name_prefix
-  kms_key_arn = module.kms.central_logs_key_arn
   sns_emails  = var.sns_emails
+  kms_key_arn = module.kms.central_logs_key_arn
+  name_prefix = local.name_prefix
 }
 
 module "kms" {
@@ -64,9 +64,9 @@ module "guardduty" {
 module "cloudtrail" {
   source                   = "../../modules/cloudtrail"
   region                   = var.region
+  cloudtrail_name          = var.cloudtrail_name
   central_logs_bucket_name = module.central-logging.central_logs_bucket_name
   central_logs_key_arn     = module.kms.central_logs_key_arn
-  cloudtrail_name          = var.cloudtrail_name
   name_prefix              = local.name_prefix
 }
 
@@ -89,6 +89,10 @@ module "lambda" {
   cloudtrail_name                                  = module.cloudtrail.cloudtrail_trail_name
   kms_key_arn                                      = module.kms.central_logs_key_arn
   name_prefix                                      = local.name_prefix
+  project                                          = var.project
+  environment                                      = var.environment
+  owner                                            = var.owner
+  managedby                                        = var.managedby
 }
 
 module "eventbridge" {

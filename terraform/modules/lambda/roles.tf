@@ -28,6 +28,8 @@ data "aws_iam_policy_document" "lambda_cloudtrail_tamper_function_permissions" {
       "cloudtrail:GetTrailStatus",
       "cloudtrail:DescribeTrails",
       "cloudtrail:ListTrails",
+      "cloudtrail:ListTags",
+      "cloudtrail:AddTags",
       "cloudtrail:GetEventSelectors",
       "cloudtrail:PutEventSelectors"
     ]

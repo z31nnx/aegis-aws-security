@@ -40,6 +40,28 @@ data "aws_iam_policy_document" "central_logs_policy" {
     resources = ["*"]
   }
 
+  # Allow SNS to use this key for topics
+  statement {
+    sid    = "AllowSNSUseOfKey"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["sns.amazonaws.com"]
+    }
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+    condition {
+      test     = "StringLike"
+      variable = "kms:EncryptionContext:aws:sns:topicArn"
+      values   = ["arn:aws:sns:${local.region}:${local.account_id}:*"]
+    }
+  }
+
   statement {
     sid    = "AllowS3ViaServiceForThisBucket"
     effect = "Allow"
@@ -52,7 +74,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "kms:ViaService"
-      values   = ["s3.${local.region}.amazonaws.com"]
+      values   = ["s3.amazonaws.com"]
     }
     condition {
       test     = "StringLike"
@@ -70,7 +92,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
       type        = "Service"
       identifiers = ["cloudtrail.amazonaws.com"]
     }
-    actions   = ["kms:GenerateDataKey*"]
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
     resources = ["*"]
     condition {
       test     = "StringEquals"
@@ -95,28 +117,6 @@ data "aws_iam_policy_document" "central_logs_policy" {
     resources = ["*"]
   }
 
-  # Allow AWS Config 
-  statement {
-    sid     = "AllowConfigUseViaService"
-    effect  = "Allow"
-    actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
-    principals {
-      type        = "Service"
-      identifiers = [local.sp_config]
-    }
-    resources = ["*"]
-    condition {
-      test     = "StringEquals"
-      variable = "kms:ViaService"
-      values   = [local.sp_config]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-  }
-
   statement {
     sid    = "AllowCloudTrailCreateGrantForAWSResource"
     effect = "Allow"
@@ -135,6 +135,28 @@ data "aws_iam_policy_document" "central_logs_policy" {
       test     = "StringEquals"
       variable = "aws:SourceArn"
       values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
+    }
+  }
+
+  # Allow AWS Config 
+  statement {
+    sid     = "AllowConfigUseViaService"
+    effect  = "Allow"
+    actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["config.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
     }
   }
 
@@ -166,13 +188,13 @@ data "aws_iam_policy_document" "central_logs_policy" {
     actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
     principals {
       type        = "Service"
-      identifiers = [local.sp_logs]
+      identifiers = ["logs.${local.region}.amazonaws.com"]
     }
     resources = ["*"]
     condition {
       test     = "StringEquals"
       variable = "kms:ViaService"
-      values   = [local.sp_logs]
+      values   = ["logs.${local.region}.amazonaws.com"]
     }
     condition {
       test     = "StringEquals"
