@@ -17,9 +17,9 @@ sts = boto3.client("sts", config=_CFG)
 SNS_HIGH = os.environ["SNS_HIGH"]  
 
 # tagging (constants; no env needed) 
-TAG_STATUS_KEY = "AegisStatus"
-TAG_LASTFIX_KEY = "AegisLastFix"
-TAG_REASON_KEY = "AegisReason"
+TAG_STATUS_KEY = "Aegis:Status"
+TAG_LASTFIX_KEY = "Aegis:LastFix"
+TAG_REASON_KEY = "Aegis:Reason"
 
 def _self():
     try:

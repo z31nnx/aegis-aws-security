@@ -11,4 +11,15 @@ resource "aws_cloudtrail" "aegis" {
   tags = {
     Name = "${var.name_prefix}-${var.cloudtrail_name}"
   }
+
+  lifecycle {
+    ignore_changes = [
+      tags["Aegis:Status"],
+      tags["Aegis:Reason"],
+      tags["Aegis:LastFix"],
+      tags["Aegis:LastSeen"],
+      tags["Aegis:Remediator"],
+    ]
+  }
+  
 }

@@ -1,6 +1,10 @@
 variable "name_prefix" {
   type = string
 }
+variable "project" {}
+variable "environment" {}
+variable "owner" {}
+variable "managedby" {}
 
 variable "sns_alerts_high_arn" {
   type        = string

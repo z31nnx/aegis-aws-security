@@ -3,6 +3,7 @@ import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -34,6 +35,7 @@ INCLUDE_GSE  = _b(os.getenv("INCLUDE_GLOBAL", "true"))
 VALIDATION   = _b(os.getenv("LOG_VALIDATION", "true"))
 IS_ORG       = _b(os.getenv("ORG_TRAIL", "false"))
 
+BASELINE_TAGS = _j(os.getenv("BASELINE_TAGS_JSON", "{}")) or {}
 EVENT_SELECTORS   = _j(os.getenv("EVENT_SELECTORS_JSON"))
 INSIGHT_SELECTORS = _j(os.getenv("INSIGHT_SELECTORS_JSON"))
 
@@ -62,6 +64,53 @@ def _resolve_self():
     except Exception as e:
         logger.warning("self-detect failed: %s", e)
         return {"account":"", "sts_arn":"", "role_name": role_name_env, "role_arn": role_arn_env}
+
+def _trail_arn(name: str):
+    try:
+        resp = ct.describe_trails(trailNameList=[name], includeShadowTrails=False)
+        for t in resp.get("trailList", []):
+            if t.get("Name") == name:
+                return t.get("TrailARN")
+    except ClientError:
+        pass
+    return None
+
+def _get_trail_tags(arn: str) -> dict:
+    try:
+        resp = ct.list_tags(ResourceIdList=[arn])
+        for item in resp.get("ResourceTagList", []):
+            if item.get("ResourceId") == arn:
+                return {t["Key"]: t.get("Value","") for t in item.get("TagsList", [])}
+    except ClientError as e:
+        logger.warning("list trail tags failed: %s", (e.response.get("Error") or {}).get("Code"))
+    return {}
+
+def ensure_trail_tags(trail_name: str, dynamic: dict):
+    """
+    Add baseline tags only if missing; always update dynamic tags.
+    Never removes any tags. Idempotent.
+    """
+    arn = _trail_arn(trail_name)
+    if not arn:
+        return
+    existing = _get_trail_tags(arn)
+
+    desired = {}
+    for k, v in (BASELINE_TAGS or {}).items():
+        if existing.get(k) is None:
+            desired[k] = str(v)
+
+    for k, v in (dynamic or {}).items():
+        if existing.get(k) != str(v):
+            desired[k] = str(v)
+
+    if desired:
+        try:
+            ct.add_tags(ResourceId=arn, TagsList=[{"Key": k, "Value": v} for k, v in desired.items()])
+        except ClientError as e:
+            logger.warning("add trail tags failed: %s", (e.response.get("Error") or {}).get("Code"))
+            logger.info("tagging trail %s with %s", TRAIL_NAME, desired)
+            
 
 SELF = _resolve_self()
 
@@ -212,7 +261,7 @@ def _format_email(evt, when, region, trail, src_ip, actor_meta, actions, errors,
     lines = [
         header, "",
         f"Event: {evt}",
-        f"When (UTC): {when}",
+        f"Time (UTC): {when}",
         f"Region: {region}",
         f"Trail: {trail}",
         f"Source IP: {src_ip}",
@@ -240,7 +289,7 @@ def lambda_handler(event, context):
     evt    = detail.get("eventName", "UnknownEvent")
     src_ip = detail.get("sourceIPAddress", "unknown")
     region = detail.get("awsRegion", os.getenv("AWS_REGION", "unknown"))
-    when   = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
+    when = (detail.get("eventTime") or datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z")
 
     if evt not in ALLOWED_EVENTS:
         logger.info("skip: event %s not in ALLOWED_EVENTS", evt)
@@ -284,4 +333,12 @@ def lambda_handler(event, context):
     body    = _format_email(evt, when, region, TRAIL_NAME, src_ip, actor, actions, errors, event)
 
     publish_high(subject, body, {"eventName": evt, "actor": actor.get("arn", "")})
+    dynamic = {
+    "Aegis:Status": "Remediated" if not errors else "Error",
+    "Aegis:Reason": f"Tamper:{evt}",
+    "Aegis:LastFix": datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z",
+    "Aegis:Remediator": "Lambda-CT-Tamper",
+    }
+    ensure_trail_tags(TRAIL_NAME, dynamic)
+
     return {"ok": len(errors) == 0, "actions": actions, "errors": errors}

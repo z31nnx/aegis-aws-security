@@ -1,3 +1,3 @@
 locals {
-  name_prefix = lower("${var.Project}-${var.Environment}")
+  name_prefix = lower("${var.project}-${var.environment}")
 }

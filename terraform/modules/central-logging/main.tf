@@ -22,6 +22,11 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "central_logs_buck
   }
 }
 
+resource "aws_s3_bucket_ownership_controls" "central_logs_ownership" {
+  bucket = aws_s3_bucket.central_logs_bucket.id
+  rule { object_ownership = "BucketOwnerEnforced" }
+}
+
 resource "aws_s3_bucket_public_access_block" "central_logs_bpa" {
   bucket                  = aws_s3_bucket.central_logs_bucket.id
   block_public_acls       = true

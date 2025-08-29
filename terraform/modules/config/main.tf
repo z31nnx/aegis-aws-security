@@ -1,30 +1,12 @@
 data "aws_iam_role" "config_slr" {
-  count = var.ensure_config_slr ? 0 : 1
-  name  = "AWSServiceRoleForConfig"
-
+  name = "AWSServiceRoleForConfig"
 }
 
-# Sometimes the service role is there, sometimes its not so the goal is to create 
-# one and if it doesnt exist, if it exists then read from data.aws_iam_role.config_slr
-
-resource "aws_iam_service_linked_role" "config" {
-  count            = var.ensure_config_slr ? 1 : 0
-  aws_service_name = "config.amazonaws.com"
-  description      = "SLR for AWS Config"
-}
-
-resource "time_sleep" "after_config_slr" {
-  count           = var.ensure_config_slr ? 1 : 0
-  depends_on      = [aws_iam_service_linked_role.config]
-  create_duration = "10s"
-}
+# Sometimes the service role is there, sometimes its not. If theres error, create the AWSServiceRoleForConfig in the IAM role console
 
 resource "aws_config_configuration_recorder" "aegis_config_recorder" {
-  name = "${var.name_prefix}-${var.config_name}-recorder"
-  role_arn = coalesce(
-    try(aws_iam_service_linked_role.config[0].arn, null),
-    try(data.aws_iam_role.config_slr[0].arn, null)
-  )
+  name     = "${var.name_prefix}-${var.config_name}-recorder"
+  role_arn = data.aws_iam_role.config_slr.arn
 
   recording_group {
     all_supported                 = true
@@ -34,10 +16,15 @@ resource "aws_config_configuration_recorder" "aegis_config_recorder" {
   recording_mode {
     recording_frequency = "CONTINUOUS"
   }
-  depends_on = [
-    aws_iam_service_linked_role.config,
-    time_sleep.after_config_slr
-  ]
+
+  # If the SLR is missing, fail with a helpful message instead of weird AWS errors
+  lifecycle {
+    precondition {
+      condition     = data.aws_iam_role.config_slr.arn != ""
+      error_message = "AWSServiceRoleForConfig not found. Create it once: aws iam create-service-linked-role --aws-service-name config.amazonaws.com"
+    }
+  }
+  depends_on = [data.aws_iam_role.config_slr]
 }
 
 resource "aws_config_delivery_channel" "aegis_config_delivery_channel" {
@@ -53,74 +40,14 @@ resource "aws_config_configuration_recorder_status" "aegis_config_status" {
   depends_on = [aws_config_delivery_channel.aegis_config_delivery_channel]
 }
 
+resource "aws_config_config_rule" "managed_rules" {
+  for_each = { for rule in var.config_rules : rule.name => rule }
 
-resource "aws_config_config_rule" "ec2_ebs_encryption_by_default" {
-  name = "ec2-ebs-encryption-by-default"
+  name = each.value.name
   source {
     owner             = "AWS"
-    source_identifier = "EC2_EBS_ENCRYPTION_BY_DEFAULT"
+    source_identifier = each.value.source_identifier
   }
-  depends_on = [
-    aws_config_configuration_recorder.aegis_config_recorder,
-    aws_config_delivery_channel.aegis_config_delivery_channel
-  ]
-}
-
-resource "aws_config_config_rule" "ec2_imdsv2_check" {
-  name = "ec2-imdsv2-check"
-  source {
-    owner             = "AWS"
-    source_identifier = "EC2_IMDSV2_CHECK"
-  }
-  depends_on = [
-    aws_config_configuration_recorder.aegis_config_recorder,
-    aws_config_delivery_channel.aegis_config_delivery_channel
-  ]
-}
-
-resource "aws_config_config_rule" "restricted_common_ports" {
-  name = "restricted-common-ports"
-  source {
-    owner             = "AWS"
-    source_identifier = "RESTRICTED_INCOMING_TRAFFIC"
-  }
-  depends_on = [
-    aws_config_configuration_recorder.aegis_config_recorder,
-    aws_config_delivery_channel.aegis_config_delivery_channel
-  ]
-}
-
-resource "aws_config_config_rule" "restricted_ssh" {
-  name = "restricted-ssh"
-  source {
-    owner             = "AWS"
-    source_identifier = "INCOMING_SSH_DISABLED"
-  }
-  depends_on = [
-    aws_config_configuration_recorder.aegis_config_recorder,
-    aws_config_delivery_channel.aegis_config_delivery_channel
-  ]
-}
-
-resource "aws_config_config_rule" "s3_bucket_level_public_access_prohibited" {
-  name = "s3-bucket-level-public-access-prohibited"
-  source {
-    owner             = "AWS"
-    source_identifier = "S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED"
-  }
-  depends_on = [
-    aws_config_configuration_recorder.aegis_config_recorder,
-    aws_config_delivery_channel.aegis_config_delivery_channel
-  ]
-}
-
-resource "aws_config_config_rule" "cloudtrail_enabled" {
-  name = "cloudtrail-enabled"
-  source {
-    owner             = "AWS"
-    source_identifier = "CLOUD_TRAIL_ENABLED"
-  }
-  maximum_execution_frequency = "One_Hour"
   depends_on = [
     aws_config_configuration_recorder.aegis_config_recorder,
     aws_config_delivery_channel.aegis_config_delivery_channel

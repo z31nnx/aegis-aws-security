@@ -1,8 +1,8 @@
 # Tags
-variable "Project" {}
-variable "Environment" {}
-variable "Owner" {}
-variable "ManagedBy" {}
+variable "project" {}
+variable "environment" {}
+variable "owner" {}
+variable "managedby" {}
 
 # Region
 variable "region" {}
@@ -28,7 +28,6 @@ variable "cloudtrail_name" {}
 variable "config_name" {}
 
 # Eventbridge
-
 
 # Lambda
 variable "lambda_cloudtrail_tamper_function_exec_role_name" {}
