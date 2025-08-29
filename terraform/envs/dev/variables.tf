@@ -1,8 +1,8 @@
 # Tags
-variable "project" {}
-variable "environment" {}
-variable "owner" {}
-variable "managedby" {}
+variable "Project" {}
+variable "Environment" {}
+variable "Owner" {}
+variable "ManagedBy" {}
 
 # Region
 variable "region" {}
@@ -10,6 +10,9 @@ variable "region" {}
 # SSM
 variable "ssm_role_name" {}
 variable "ssm_instance_profile_name" {}
+
+# SNS
+variable "sns_emails" {}
 
 # KMS Keys
 variable "main_username" {}
@@ -24,6 +27,11 @@ variable "cloudtrail_name" {}
 # Config
 variable "config_name" {}
 
+# Eventbridge
+
+
 # Lambda
+variable "lambda_cloudtrail_tamper_function_exec_role_name" {}
 variable "lambda_cloudtrail_tamper_function_name" {}
-variable "lambda_cloudtrail_tamper_exec_role_name" {}
+variable "lambda_ssh_remediation_function_exec_role_name" {}
+variable "lambda_ssh_remediation_function_name" {}

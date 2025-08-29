@@ -11,7 +11,7 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 
 
 resource "aws_iam_role" "ssm_role" {
-  name               = var.ssm_role_name
+  name               = "${var.name_prefix}-${var.ssm_role_name}"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 }
 
@@ -23,6 +23,6 @@ resource "aws_iam_role_policy_attachment" "ssm_role_policy_attachment" {
 }
 
 resource "aws_iam_instance_profile" "ssm_instance_profile" {
-  name = var.ssm_instance_profile_name
+  name = "${var.name_prefix}-${var.ssm_instance_profile_name}"
   role = aws_iam_role.ssm_role.name
 }

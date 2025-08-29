@@ -8,6 +8,4 @@ locals {
   sp_cloudtrail = "cloudtrail.amazonaws.com"
   sp_config     = "config.amazonaws.com"
   sp_logs       = "logs.${local.region}.amazonaws.com"
-
-  global_tags = var.global_tags
 }

@@ -49,7 +49,7 @@ def _resolve_self():
     try:
         ident   = sts.get_caller_identity()
         acct    = ident.get("Account", "")
-        sts_arn = ident.get("Arn", "")  # arn:aws:sts::<acct>:assumed-role/<role>/<session>
+        sts_arn = ident.get("Arn", "")  
         role_name = ""
         if ":assumed-role/" in sts_arn:
             role_name = sts_arn.split(":assumed-role/")[-1].split("/")[0]

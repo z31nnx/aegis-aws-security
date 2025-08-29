@@ -1,8 +1,6 @@
 resource "aws_s3_bucket" "central_logs_bucket" {
-  bucket        = var.central_bucket_name
+  bucket        = "${var.name_prefix}-${var.central_bucket_name}"
   force_destroy = true # Default = false
-
-  tags = merge(local.global_tags)
 }
 
 resource "aws_s3_bucket_versioning" "central_logs_bucket_versioning" {
