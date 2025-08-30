@@ -21,5 +21,5 @@ resource "aws_cloudtrail" "aegis" {
       tags["Aegis:Remediator"],
     ]
   }
-  
+
 }

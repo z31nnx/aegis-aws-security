@@ -15,6 +15,9 @@ sts = boto3.client("sts", config=_CFG)
 
 # env (required) 
 SNS_HIGH = os.environ["SNS_HIGH"]  
+ADMIN_PORTS = {
+    int(p.strip()) for p in os.getenv("ADMIN_PORTS", "22,3389").split(",") if p.strip()
+}
 
 # tagging (constants; no env needed) 
 TAG_STATUS_KEY = "Aegis:Status"
@@ -88,7 +91,7 @@ def _publish_high(subject, body, attrs=None):
         raise
 
 def _format_email(evt, when, region, groups, removed_rules, actor, errors, event, src_ip="unknown"):
-    header = "[Aegis] SSH world-open auto-remediation"
+    header = "[Aegis] SSH/RDP world-open auto-remediation"
     lines = [
         header, "",
         f"Event: {evt}",
@@ -137,39 +140,61 @@ def _format_email(evt, when, region, groups, removed_rules, actor, errors, event
 def _describe_sg(gid: str) -> dict:
     return ec2.describe_security_groups(GroupIds=[gid])["SecurityGroups"][0]
 
-def _find_world_ssh_permissions(sg_desc: dict):
-    """Return IpPermissions payload (world-only) and pretty strings for email."""
+def _perm_includes_port(p: dict, port: int) -> bool:
+    proto = p.get("IpProtocol")
+    from_p = p.get("FromPort")
+    to_p   = p.get("ToPort")
+
+    if proto == "tcp":
+        # exact or range that includes port
+        if from_p is not None and to_p is not None:
+            return from_p <= port <= to_p
+        # some APIs send None with tcp — treat as not matching unless -1
+        return False
+    # "-1" means all protocols/ports
+    return proto == "-1"
+
+def _find_world_admin_permissions(sg_desc: dict):
+    """
+    Return IpPermissions payload (world-only) across ADMIN_PORTS,
+    and pretty strings + per-SG reason tokens (e.g., {'22','3389'}).
+    """
     revoke = {"IpPermissions": []}
     pretty = []
-    for p in sg_desc.get("IpPermissions", []):
-        ip_proto = p.get("IpProtocol")
-        from_p  = p.get("FromPort")
-        to_p    = p.get("ToPort")
+    reasons = set()
 
-        includes_22 = (ip_proto == "tcp" and from_p == 22 and to_p == 22) or (ip_proto == "-1")
-        if not includes_22:
+    for p in sg_desc.get("IpPermissions", []):
+        # which admin ports does this permission cover?
+        covered = [port for port in ADMIN_PORTS if _perm_includes_port(p, port)]
+        if not covered:
             continue
 
         # IPv4 worlds
         for r in p.get("IpRanges", []):
             cidr = r.get("CidrIp")
             if cidr and _is_world(cidr):
-                pretty.append(f"IPv4 {cidr} tcp/22")
-                revoke["IpPermissions"].append({
-                    "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22,
-                    "IpRanges": [{"CidrIp": "0.0.0.0/0"}]
-                })
+                for port in covered:
+                    pretty.append(f"IPv4 {cidr} tcp/{port}")
+                    revoke["IpPermissions"].append({
+                        "IpProtocol": "tcp", "FromPort": port, "ToPort": port,
+                        "IpRanges": [{"CidrIp": "0.0.0.0/0"}]
+                    })
+                    reasons.add(str(port))
 
         # IPv6 worlds
         for r6 in p.get("Ipv6Ranges", []):
             cidr6 = r6.get("CidrIpv6")
             if cidr6 and _is_world(cidr6):
-                pretty.append(f"IPv6 {cidr6} tcp/22")
-                revoke["IpPermissions"].append({
-                    "IpProtocol": "tcp", "FromPort": 22, "ToPort": 22,
-                    "Ipv6Ranges": [{"CidrIpv6": "::/0"}]
-                })
-    return revoke, pretty
+                for port in covered:
+                    pretty.append(f"IPv6 {cidr6} tcp/{port}")
+                    revoke["IpPermissions"].append({
+                        "IpProtocol": "tcp", "FromPort": port, "ToPort": port,
+                        "Ipv6Ranges": [{"CidrIpv6": "::/0"}]
+                    })
+                    reasons.add(str(port))
+
+    return revoke, pretty, reasons
+
 
 def _revoke(group_id: str, revoke_payload: dict):
     if not revoke_payload["IpPermissions"]:
@@ -224,11 +249,17 @@ def lambda_handler(event, context):
     for gid in groups:
         try:
             sg = _describe_sg(gid)
-            revoke_payload, human_rules = _find_world_ssh_permissions(sg)
+            revoke_payload, human_rules, reason_ports = _find_world_admin_permissions(sg)
             changed = _revoke(gid, revoke_payload)
             if changed and human_rules:
                 removed_map[gid] = human_rules
-                _tag_sg(gid, reason="SSHWorldOpen")
+                # Reason becomes SSH/RDP aware, e.g., "PortsOpen(22,3389)"
+                reason_label = (
+                    "PortsOpen(" + ",".join(sorted(reason_ports)) + ")"
+                    if len(reason_ports) > 1 else
+                    ("SSHWorldOpen" if "22" in reason_ports else "RDPWorldOpen")
+                )
+                _tag_sg(gid, reason=reason_label)
         except Exception as e:
             logger.exception("failed processing %s", gid)
             errors.append(f"{gid}:{e}")

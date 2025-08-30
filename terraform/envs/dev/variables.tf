@@ -26,6 +26,7 @@ variable "cloudtrail_name" {}
 
 # Config
 variable "config_name" {}
+variable "config_role_name" {}
 
 # Eventbridge
 

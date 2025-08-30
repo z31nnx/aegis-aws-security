@@ -73,6 +73,7 @@ module "cloudtrail" {
 module "config" {
   source                   = "../../modules/config"
   config_name              = var.config_name
+  config_role_name         = var.config_role_name
   central_logs_bucket_name = module.central-logging.central_logs_bucket_name
   name_prefix              = local.name_prefix
 }
