@@ -1,0 +1,34 @@
+# Global Tags 
+project     = "aegis"
+environment = "dev"
+owner       = "your_user or email"
+managedby   = "Terraform"
+
+# Region
+region = "us-east-1"
+
+# SSM 
+ssm_role_name             = "ssm-role"
+ssm_instance_profile_name = "ssm-role-profile"
+
+# SNS 
+sns_emails = ["youremail@gmail.com", "yoursecondemail@gmail.com"]
+
+# KMS Keys
+main_username = "your_iam_user"
+kms_key_alias = "central-logs"
+
+# S3
+central_bucket_name = "central-logs"
+
+# Cloudtrail
+cloudtrail_name = "trail"
+
+# Config 
+config_name = "config"
+
+# Lambda
+lambda_cloudtrail_tamper_function_name           = "cloudtrail-tamper-shield"
+lambda_cloudtrail_tamper_function_exec_role_name = "lambda-cloudtrail-tamper-shield-exec-role"
+lambda_ssh_remediation_function_name             = "ssh-remediation"
+lambda_ssh_remediation_function_exec_role_name   = "lambda-ssh-remediation-exec-role"

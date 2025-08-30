@@ -9,6 +9,7 @@ variable "ensure_config_slr" {
 }
 
 variable "config_name" {}
+variable "config_role_name" {}
 variable "central_logs_bucket_name" {}
 
 variable "config_rules" {

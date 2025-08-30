@@ -1,4 +1,5 @@
 import os, json, time, datetime, logging
+import uuid, gzip
 import boto3
 from botocore.exceptions import ClientError
 from botocore.config import Config
@@ -11,6 +12,7 @@ _CFG = Config(retries={"max_attempts": 5, "mode": "standard"}, read_timeout=10, 
 ct  = boto3.client("cloudtrail", config=_CFG)
 sns = boto3.client("sns",        config=_CFG)
 sts = boto3.client("sts",        config=_CFG)
+s3 = boto3.client("s3", config=_CFG)
 
 def _b(v, default=False):
     if v is None:
@@ -38,6 +40,13 @@ IS_ORG       = _b(os.getenv("ORG_TRAIL", "false"))
 BASELINE_TAGS = _j(os.getenv("BASELINE_TAGS_JSON", "{}")) or {}
 EVENT_SELECTORS   = _j(os.getenv("EVENT_SELECTORS_JSON"))
 INSIGHT_SELECTORS = _j(os.getenv("INSIGHT_SELECTORS_JSON"))
+EVENT_DUMP_BUCKET   = os.getenv("EVENT_DUMP_BUCKET", "")            
+EVENT_DUMP_PREFIX   = os.getenv("EVENT_DUMP_PREFIX", "aegis/events/cloudtrail")
+EVENT_DUMP_KMS_ARN  = os.getenv("EVENT_DUMP_KMS_ARN", "")           # optional KMS for dumps
+PRESIGN_TTL_SECS    = int(os.getenv("PRESIGN_TTL_SECS", "3600"))    # 1h link
+TRUNCATE_LEN        = int(os.getenv("TRUNCATE_LEN", "1200"))        # email snippet length
+INCLUDE_EVENT_SNIP  = os.getenv("INCLUDE_EVENT_SNIPPET", "1").lower() in ("1","true","yes","on")
+
 
 SNS_HIGH       = os.environ["SNS_HIGH"]
 ALLOWED_EVENTS = {e.strip() for e in os.getenv(
@@ -64,6 +73,27 @@ def _resolve_self():
     except Exception as e:
         logger.warning("self-detect failed: %s", e)
         return {"account":"", "sts_arn":"", "role_name": role_name_env, "role_arn": role_arn_env}
+
+def _dump_event_to_s3(event, when, region, evt):
+    if not EVENT_DUMP_BUCKET:
+        return None
+    safe_when = when.replace(":", "-")
+    key = f"{EVENT_DUMP_PREFIX}/{region}/{evt}/{safe_when}-{uuid.uuid4().hex}.json.gz"
+    body = gzip.compress(json.dumps(event, separators=(",", ":")).encode("utf-8"))
+
+    extra = {"ServerSideEncryption": "AES256"}
+    if EVENT_DUMP_KMS_ARN:
+        extra = {"ServerSideEncryption": "aws:kms", "SSEKMSKeyId": EVENT_DUMP_KMS_ARN}
+
+    s3.put_object(Bucket=EVENT_DUMP_BUCKET, Key=key, Body=body,
+                  ContentType="application/json", ContentEncoding="gzip", **extra)
+
+    url = s3.generate_presigned_url(
+        "get_object",
+        Params={"Bucket": EVENT_DUMP_BUCKET, "Key": key},
+        ExpiresIn=PRESIGN_TTL_SECS,
+    )
+    return {"bucket": EVENT_DUMP_BUCKET, "key": key, "url": url}
 
 def _trail_arn(name: str):
     try:
@@ -256,7 +286,7 @@ def _actor_meta(detail: dict):
         actor.update({"issuerArn":"", "issuerName":"", "issuerType":""})
     return actor
 
-def _format_email(evt, when, region, trail, src_ip, actor_meta, actions, errors, event):
+def _format_email(evt, when, region, trail, src_ip, actor_meta, actions, errors, event_snippet=None, dump_url=None):
     header = "[Aegis] CloudTrail tamper auto-remediation"
     lines = [
         header, "",
@@ -267,21 +297,33 @@ def _format_email(evt, when, region, trail, src_ip, actor_meta, actions, errors,
         f"Source IP: {src_ip}",
         "",
         "Actor:",
-        f"Type: {actor_meta['type'] or '—'}",
-        f"Account: {actor_meta['accountId'] or '—'}",
-        f"User/prin: {actor_meta['userName'] or actor_meta['principalId'] or '—'}",
-        f"Arn: {actor_meta['arn'] or '—'}",
+        f"Type: {actor_meta.get('type') or '—'}",
+        f"Account: {actor_meta.get('accountId') or '—'}",
+        f"User/prin: {actor_meta.get('userName') or actor_meta.get('principalId') or '—'}",
+        f"Arn: {actor_meta.get('arn') or '—'}",
     ]
     if actor_meta.get("issuerArn"):
         lines += [
             "",
             "issuer (role):",
-            f"Name: {actor_meta['issuerName'] or '—'}",
-            f"Type: {actor_meta['issuerType'] or '—'}",
-            f"Arn: {actor_meta['issuerArn'] or '—'}",
+            f"Name: {actor_meta.get('issuerName') or '—'}",
+            f"Type: {actor_meta.get('issuerType') or '—'}",
+            f"Arn: {actor_meta.get('issuerArn') or '—'}",
         ]
+
     lines += ["", "Actions:"] + [f"- {a}" for a in (actions or ["No change required"])]
     lines += ["", "Errors:"]  + [f"- {e}" for e in (errors or ["None"])]
+
+    if dump_url:
+        lines += ["", f"Full event (pre-signed): {dump_url} (expires in {PRESIGN_TTL_SECS}s)"]
+
+    if INCLUDE_EVENT_SNIP and TRUNCATE_LEN > 0:
+        try:
+            tail = json.dumps(event_snippet, separators=(",", ":"))[:TRUNCATE_LEN]
+            lines += ["", "Event (snippet):", tail]
+        except Exception:
+            pass
+
     return "\n".join(lines)
 
 def lambda_handler(event, context):
@@ -330,9 +372,21 @@ def lambda_handler(event, context):
 
     actor = _actor_meta(detail)
     subject = f"[Aegis/HIGH] {evt} → auto-remediation ({TRAIL_NAME} | {region})"[:100]
-    body    = _format_email(evt, when, region, TRAIL_NAME, src_ip, actor, actions, errors, event)
+
+    dump = None
+    try:
+        dump = _dump_event_to_s3(event, when, region, evt)
+    except Exception as e:
+        logger.warning("event dump failed: %s", e)
+
+    body = _format_email(
+        evt, when, region, TRAIL_NAME, src_ip, actor, actions, errors,
+        event_snippet=event,
+        dump_url=(dump or {}).get("url")
+    )
 
     publish_high(subject, body, {"eventName": evt, "actor": actor.get("arn", "")})
+
     dynamic = {
     "Aegis:Status": "Remediated" if not errors else "Error",
     "Aegis:Reason": f"Tamper:{evt}",
