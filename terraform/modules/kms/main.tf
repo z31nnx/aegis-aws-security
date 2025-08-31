@@ -92,7 +92,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
       type        = "Service"
       identifiers = ["cloudtrail.amazonaws.com"]
     }
-    actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt", "kms:Encrypt"]
     resources = ["*"]
     condition {
       test     = "StringEquals"
