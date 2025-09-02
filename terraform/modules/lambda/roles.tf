@@ -64,7 +64,6 @@ resource "aws_iam_role" "lambda_cloudtrail_tamper_function_exec_role" {
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-# Basic logs for Lambda
 resource "aws_iam_role_policy_attachment" "lambda_cloudtrail_tamper_function_basic_logs" {
   role       = aws_iam_role.lambda_cloudtrail_tamper_function_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
@@ -138,4 +137,100 @@ resource "aws_iam_policy" "lambda_ssh_remediation_function_permissions" {
 resource "aws_iam_role_policy_attachment" "lambda_ssh_guard_attach" {
   role       = aws_iam_role.lambda_ssh_remediation_function_exec_role.name
   policy_arn = aws_iam_policy.lambda_ssh_remediation_function_permissions.arn
+}
+
+data "aws_iam_policy_document" "lambda_crypto_permissions" {
+  # Logs
+  statement {
+    sid       = "Logs"
+    effect    = "Allow"
+    actions   = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+    resources = ["*"]
+  }
+
+  # SNS (alerts) + KMS context for encrypted topic
+  statement {
+    sid       = "SNS"
+    effect    = "Allow"
+    actions   = ["sns:Publish", "sns:GetTopicAttributes"]
+    resources = [var.sns_alerts_high_arn]
+  }
+  statement {
+    sid       = "SNSKmsContext"
+    effect    = "Allow"
+    actions   = ["kms:GenerateDataKey", "kms:Decrypt"]
+    resources = [var.kms_key_arn]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:EncryptionContext:aws:sns:topicArn"
+      values   = [var.sns_alerts_high_arn]
+    }
+  }
+
+  statement {
+    sid    = "EC2Describe"
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeInstances",
+      "ec2:DescribeInstanceAttribute",
+      "ec2:DescribeNetworkInterfaces",
+      "ec2:DescribeSecurityGroups",
+      "ec2:DescribeVolumes",
+      "ec2:DescribeIamInstanceProfileAssociations"
+    ]
+    resources = ["*"]
+  }
+
+  # Network isolation + tagging
+  statement {
+    sid    = "EC2Isolation"
+    effect = "Allow"
+    actions = [
+      "ec2:CreateSecurityGroup",
+      "ec2:RevokeSecurityGroupEgress",
+      "ec2:ModifyNetworkInterfaceAttribute",
+      "ec2:CreateTags"
+    ]
+    resources = ["*"]
+  }
+
+  # Forensics + freeze + profile containment
+  statement {
+    sid       = "EC2Forensics"
+    effect    = "Allow"
+    actions   = ["ec2:CreateSnapshot", "ec2:CreateTags"]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "EC2Freeze"
+    effect    = "Allow"
+    actions   = ["ec2:StopInstances"]
+    resources = ["*"]
+  }
+  statement {
+    sid       = "EC2ProfileContainment"
+    effect    = "Allow"
+    actions   = ["ec2:DisassociateIamInstanceProfile"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role" "lambda_crypto_exec_role" {
+  name               = "${var.name_prefix}-${var.lambda_crypto_quarantine_function_exec_role_name}"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_crypto_basic_logs" {
+  role       = aws_iam_role.lambda_crypto_exec_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_policy" "lambda_crypto_permissions" {
+  name   = "${var.name_prefix}-${var.lambda_crypto_quarantine_function_exec_role_name}-policy"
+  policy = data.aws_iam_policy_document.lambda_crypto_permissions.json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_crypto_attach" {
+  role       = aws_iam_role.lambda_crypto_exec_role.name
+  policy_arn = aws_iam_policy.lambda_crypto_permissions.arn
 }

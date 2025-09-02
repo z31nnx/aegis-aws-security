@@ -52,3 +52,29 @@ resource "aws_lambda_permission" "lambda_ssh_remediation_permissions" {
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.lambda_ssh_remediation_rule.arn
 }
+
+resource "aws_cloudwatch_event_rule" "lambda_crypto_quarantine_rule" {
+  name        = "${var.name_prefix}-${var.lambda_crypto_quarantine_function_name}"
+  description = "GuardDuty CryptoCurrency EC2 findings → Aegis crypto quarantine"
+  event_pattern = jsonencode({
+    "source" : ["aws.guardduty"],
+    "detail-type" : ["GuardDuty Finding"],
+    "detail" : {
+      "type" : [{ "prefix" : "CryptoCurrency:EC2/*" }]
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "lambda_crypto_quarantine_rule_target" {
+  rule      = aws_cloudwatch_event_rule.lambda_crypto_quarantine_rule.name
+  target_id = "crypto-quarantine"
+  arn       = var.lambda_crypto_quarantine_function_arn
+}
+
+resource "aws_lambda_permission" "lambda_crypto_quarantine_allow_invoke" {
+  statement_id  = "AllowEventBridgeGuardDutyInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = var.lambda_crypto_quarantine_function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.lambda_crypto_quarantine_rule.arn
+}

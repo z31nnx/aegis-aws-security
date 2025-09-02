@@ -47,11 +47,8 @@ aws configure
 # Change to an environment folder
 cd ./aegis-aws-security/terraform/envs/dev
 
-# Initialize / format / validate
-# Run these commands:
-terraform init -upgrade
-terraform fmt -recursive
-terraform validate
+# Initialize
+terraform init
 
 # Plan & apply with your tfvars
 terraform plan  -var-file="dev.tfvars"

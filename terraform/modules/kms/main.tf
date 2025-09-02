@@ -4,6 +4,10 @@ resource "aws_kms_key" "central_logs_key" {
   deletion_window_in_days = 30
   policy                  = data.aws_iam_policy_document.central_logs_policy.json
 
+  lifecycle {
+    prevent_destroy = false # set true to prevent accidental deletion
+  }
+
 }
 
 resource "aws_kms_alias" "central_logs_key_alias" {
@@ -92,7 +96,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
       type        = "Service"
       identifiers = ["cloudtrail.amazonaws.com"]
     }
-    actions   = ["kms:GenerateDataKey*", "kms:Decrypt"]
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt", "kms:Encrypt"]
     resources = ["*"]
     condition {
       test     = "StringEquals"
