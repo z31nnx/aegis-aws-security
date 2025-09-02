@@ -5,5 +5,5 @@ variable "name_prefix" {
 variable "region" {}
 variable "vpc_id" {}
 variable "private_rt_id" {
-    type = string
+  type = string
 }

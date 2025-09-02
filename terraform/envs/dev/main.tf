@@ -29,37 +29,9 @@ module "guardduty" {
   region = var.region
 }
 
-module "vpc" {
-  source          = "../../modules/vpc"
-  vpc_name        = var.vpc_name
-  cidr_block      = var.cidr_block
-  public_subnets  = var.public_subnets
-  private_subnets = var.private_subnets
-  name_prefix     = local.name_prefix
-}
-
-module "flow_logs" {
-  source = "../../modules/flow_logs"
-  region = var.region
-  flow_log_name = var.flow_log_name
-  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
-  vpc_id = module.vpc.vpc_id
-  name_prefix = local.name_prefix
-}
-
-module "endpoints" {
-  source = "../../modules/endpoints"
-  region = var.region
-  vpc_id = module.vpc.vpc_id
-  private_rt_id = module.vpc.private_rt_id
-  name_prefix = local.name_prefix
-
-}
-
 module "sg" {
   source             = "../../modules/sg"
   name_prefix        = local.name_prefix
-  vpc_id             = module.vpc.vpc_id
   quarantine_sg_name = var.quarantine_sg_name
 }
 
@@ -146,3 +118,34 @@ module "eventbridge" {
   cloudtrail_arn                                = module.cloudtrail.cloudtrail_trail_arn
   name_prefix                                   = local.name_prefix
 }
+
+/*
+module "vpc" {
+  source          = "../../modules/vpc"
+  vpc_name        = var.vpc_name
+  cidr_block      = var.cidr_block
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
+  name_prefix     = local.name_prefix
+}
+
+module "endpoints" {
+  source = "../../modules/endpoints"
+  region = var.region
+  vpc_id = module.vpc.vpc_id
+  private_rt_id = module.vpc.private_rt_id
+  name_prefix = local.name_prefix
+
+}
+
+module "flow_logs" {
+  source = "../../modules/flow_logs"
+  region = var.region
+  flow_log_name = var.flow_log_name
+  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
+  vpc_id = module.vpc.vpc_id
+  name_prefix = local.name_prefix
+}
+*/
+
+# uncomment when you need these modules 

@@ -207,24 +207,24 @@ data "aws_iam_policy_document" "central_logs_policy" {
     }
   }
   statement {
-  sid = "AllowVPCFlowLogsUseOfKey"
-  effect = "Allow"
-  principals {
-    type        = "Service"
-    identifiers = ["delivery.logs.amazonaws.com"]
+    sid    = "AllowVPCFlowLogsUseOfKey"
+    effect = "Allow"
+    principals {
+      type        = "Service"
+      identifiers = ["delivery.logs.amazonaws.com"]
+    }
+    actions = [
+      "kms:Encrypt",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
   }
-  actions = [
-    "kms:Encrypt",
-    "kms:GenerateDataKey*",
-    "kms:DescribeKey"
-  ]
-  resources = ["*"]
-  condition {
-    test     = "StringEquals"
-    variable = "aws:SourceAccount"
-    values   = [local.account_id]
-  }
-}
 }
 
 
