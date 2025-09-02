@@ -13,6 +13,9 @@ variable "cidr_block" {}
 variable "public_subnets" {}
 variable "private_subnets" {}
 
+# VPC Flowlogs
+variable "flow_log_name" {}
+
 # SG
 variable "quarantine_sg_name" {}
 

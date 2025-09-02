@@ -38,6 +38,15 @@ module "vpc" {
   name_prefix     = local.name_prefix
 }
 
+module "flow_logs" {
+  source = "../../modules/flow_logs"
+  region = var.region
+  flow_log_name = var.flow_log_name
+  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
+  vpc_id = module.vpc.vpc_id
+  name_prefix = local.name_prefix
+}
+
 module "endpoints" {
   source = "../../modules/endpoints"
   region = var.region
