@@ -40,3 +40,14 @@ variable "lambda_ssh_remediation_function_exec_role_name" {}
 variable "lambda_ssh_remediation_function_name" {}
 variable "lambda_crypto_quarantine_function_exec_role_name" {}
 variable "lambda_crypto_quarantine_function_name" {}
+
+/*
+# VPC 
+variable "vpc_name" {}
+variable "cidr_block" {}
+variable "public_subnets" {}
+variable "private_subnets" {}
+
+# VPC Flowlogs
+variable "flow_log_name" {}
+*/
