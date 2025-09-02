@@ -196,34 +196,36 @@ data "aws_iam_policy_document" "central_logs_bucket" {
   }
 
   statement {
-    sid = "AllowVPCFlowLogsToPutObject"
-    effect = "Allow"
-    actions = ["s3:PutObject"]
-    principals {
-      type = "Service"
-      identifiers = ["delivery.logs.amazonaws.com"]
-    }
-    resources = ["${aws_s3_bucket.central_logs_bucket.arn}/vpcflowlogs/AWSLogs/${local.account_id}/*"]
+  sid     = "AllowVPCFlowLogsToPutObject"
+  effect  = "Allow"
+  actions = ["s3:PutObject"]
+  principals {
+    type        = "Service"
+    identifiers = ["delivery.logs.amazonaws.com"]
+  }
+  resources = [
+    "${aws_s3_bucket.central_logs_bucket.arn}/AWSLogs/${local.account_id}/*"
+  ]
+  condition {
+    test     = "StringEquals"
+    variable = "aws:SourceAccount"
+    values   = [local.account_id]
+  }
+  condition {
+    test     = "ArnLike"
+    variable = "aws:SourceArn"
+    values   = ["arn:aws:logs:${local.region}:${local.account_id}:*"]
+  }
       condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-    condition {
       test     = "StringEquals"
       variable = "s3:x-amz-acl"
       values   = ["bucket-owner-full-control"]
     }
-    condition {
-      test = "ArnLike"
-      variable = "aws:SourceArn"
-      values = ["arn:aws:logs:${local.region}:${local.account_id}:*"]
-    }
-  }
+}
   statement {
     sid = "AWSLogDeliveryAclCheck1"
     effect = "Allow"
-    actions = [ "s3:GetBucketAcl" ]
+    actions = [ "s3:GetBucketAcl", "s3:ListBucket" ]
     principals {
       type = "Service"
       identifiers = ["delivery.logs.amazonaws.com"]
@@ -241,6 +243,7 @@ data "aws_iam_policy_document" "central_logs_bucket" {
     }
   }
 }
+
 
 resource "aws_s3_bucket_policy" "central_logs_bucket_policy" {
   bucket = aws_s3_bucket.central_logs_bucket.id
