@@ -29,9 +29,19 @@ module "guardduty" {
   region = var.region
 }
 
+module "vpc" {
+  source          = "../../modules/vpc"
+  vpc_name        = var.vpc_name
+  cidr_block      = var.cidr_block
+  public_subnets  = var.public_subnets
+  private_subnets = var.private_subnets
+  name_prefix     = local.name_prefix
+}
+
 module "sg" {
   source             = "../../modules/sg"
   name_prefix        = local.name_prefix
+  vpc_id             = module.vpc.vpc_id
   quarantine_sg_name = var.quarantine_sg_name
 }
 

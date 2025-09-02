@@ -7,6 +7,12 @@ variable "managedby" {}
 # Region
 variable "region" {}
 
+# VPC 
+variable "vpc_name" {}
+variable "cidr_block" {}
+variable "public_subnets" {}
+variable "private_subnets" {}
+
 # SG
 variable "quarantine_sg_name" {}
 
