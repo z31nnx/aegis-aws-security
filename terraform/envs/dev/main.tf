@@ -38,6 +38,15 @@ module "vpc" {
   name_prefix     = local.name_prefix
 }
 
+module "endpoints" {
+  source = "../../modules/endpoints"
+  region = var.region
+  vpc_id = module.vpc.vpc_id
+  private_rt_id = module.vpc.private_rt_id
+  name_prefix = local.name_prefix
+
+}
+
 module "sg" {
   source             = "../../modules/sg"
   name_prefix        = local.name_prefix

@@ -69,7 +69,7 @@ resource "aws_route_table" "public_rt" {
   }
 
   tags = {
-    name = "${var.name_prefix}-public-rt"
+    Name = "${var.name_prefix}-public-rt"
   }
 }
 
