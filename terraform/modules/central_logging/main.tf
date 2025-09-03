@@ -1,5 +1,6 @@
 data "aws_caller_identity" "me" {}
 data "aws_region" "current" {}
+data "aws_partition" "current" {}
 
 resource "aws_s3_bucket" "central_logs_bucket" {
   bucket        = "${var.name_prefix}-${var.central_bucket_name}"
@@ -67,7 +68,7 @@ data "aws_iam_policy_document" "central_logs_bucket" {
     condition {
       test     = "ArnLike"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/*"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/*"]
     }
   }
 
@@ -93,7 +94,7 @@ data "aws_iam_policy_document" "central_logs_bucket" {
     condition {
       test     = "ArnLike"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/*"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/*"]
     }
   }
 

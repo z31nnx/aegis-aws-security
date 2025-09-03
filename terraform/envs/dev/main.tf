@@ -55,7 +55,6 @@ module "sns" {
 
 module "central_logging" {
   source                   = "../../modules/central_logging"
-  region                   = var.region
   central_bucket_name      = var.central_bucket_name
   central_logs_kms_key_arn = module.kms.central_logs_key_arn
   name_prefix              = local.name_prefix
@@ -73,7 +72,6 @@ module "kms" {
 
 module "cloudtrail" {
   source                   = "../../modules/cloudtrail"
-  region                   = var.region
   cloudtrail_name          = var.cloudtrail_name
   central_logs_bucket_name = module.central_logging.central_logs_bucket_name
   central_logs_key_arn     = module.kms.central_logs_key_arn

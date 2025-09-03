@@ -1,6 +1,8 @@
+data "aws_region" "current" {}
+
 resource "aws_guardduty_detector" "aegis_guardduty" {
   enable = true
-  region = var.region
+  region = data.aws_region.current.region
 }
 
 resource "aws_guardduty_detector_feature" "aegis_detector_s3" {

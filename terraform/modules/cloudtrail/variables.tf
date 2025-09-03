@@ -2,7 +2,6 @@ variable "name_prefix" {
   type = string
 }
 
-variable "region" {}
 variable "cloudtrail_name" {}
 variable "central_logs_key_arn" {}
 variable "central_logs_bucket_name" {}
