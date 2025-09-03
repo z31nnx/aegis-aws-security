@@ -1,3 +1,6 @@
+data "aws_caller_identity" "me" {}
+data "aws_region" "current" {}
+
 resource "aws_s3_bucket" "central_logs_bucket" {
   bucket        = "${var.name_prefix}-${var.central_bucket_name}"
   force_destroy = true # Default = false

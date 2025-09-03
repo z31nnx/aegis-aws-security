@@ -29,6 +29,10 @@ module "guardduty" {
   region = var.region
 }
 
+module "security_hub" {
+  source = "../../modules/security_hub"
+}
+
 module "sg" {
   source             = "../../modules/sg"
   name_prefix        = local.name_prefix
@@ -60,7 +64,6 @@ module "central_logging" {
 module "kms" {
   source                  = "../../modules/kms"
   cloudtrail_name         = var.cloudtrail_name
-  region                  = var.region
   main_username           = var.main_username
   kms_key_alias           = var.kms_key_alias
   central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
@@ -118,34 +121,3 @@ module "eventbridge" {
   cloudtrail_arn                                = module.cloudtrail.cloudtrail_trail_arn
   name_prefix                                   = local.name_prefix
 }
-
-/*
-module "vpc" {
-  source          = "../../modules/vpc"
-  vpc_name        = var.vpc_name
-  cidr_block      = var.cidr_block
-  public_subnets  = var.public_subnets
-  private_subnets = var.private_subnets
-  name_prefix     = local.name_prefix
-}
-
-module "endpoints" {
-  source = "../../modules/endpoints"
-  region = var.region
-  vpc_id = module.vpc.vpc_id
-  private_rt_id = module.vpc.private_rt_id
-  name_prefix = local.name_prefix
-
-}
-
-module "flow_logs" {
-  source = "../../modules/flow_logs"
-  region = var.region
-  flow_log_name = var.flow_log_name
-  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
-  vpc_id = module.vpc.vpc_id
-  name_prefix = local.name_prefix
-}
-*/
-
-# uncomment when you need these modules 

@@ -2,8 +2,6 @@ variable "name_prefix" {
   type = string
 }
 
-variable "region" {}
-
 variable "kms_key_alias" {
   type        = string
   description = "Alias name for the KMS key"

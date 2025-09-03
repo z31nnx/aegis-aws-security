@@ -1,3 +1,7 @@
+data "aws_caller_identity" "me" {}
+data "aws_region" "current" {}
+data "aws_partition" "current" {}
+
 resource "aws_kms_key" "central_logs_key" {
   description             = "Main key for central logs"
   enable_key_rotation     = true
@@ -23,12 +27,12 @@ data "aws_iam_policy_document" "central_logs_policy" {
     actions = ["kms:*"]
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${local.account_id}:root", ]
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:root", ]
     }
     resources = ["*"]
   }
 
-  # Named key admins 
+  # Key admins 
   statement {
     sid    = "KeyAdminsNoDecrypt"
     effect = "Allow"
@@ -39,10 +43,23 @@ data "aws_iam_policy_document" "central_logs_policy" {
     ]
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${local.account_id}:user/${var.main_username}", "arn:aws:iam::${local.account_id}:role/admin"]
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:user/${var.main_username}", "arn:aws:iam::${local.account_id}:role/admin"]
     }
     resources = ["*"]
   }
+
+  # Key users
+  statement {
+    sid     = "Allow use of the key"
+    effect  = "Allow"
+    actions = ["kms:Encrypt", "kms:Decrypt", "kms:ReEncrypt*", "kms:GenerateDataKey*", "kms:DescribeKey"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:user/${var.main_username}", "arn:aws:iam::${local.account_id}:role/admin"]
+    }
+    resources = ["*"]
+  }
+
 
   # Allow SNS to use this key for topics
   statement {
@@ -62,7 +79,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:sns:topicArn"
-      values   = ["arn:aws:sns:${local.region}:${local.account_id}:*"]
+      values   = ["arn:${local.partition}:sns:${local.region}:${local.account_id}:*"]
     }
   }
 
@@ -87,7 +104,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     }
   }
 
-  # Allow CloudTrail to use the key (GenerateDataKey/Encrypt/Decrypt/Describe)
+  # Allow CloudTrail to use the key
 
   statement {
     sid    = "AllowCloudTrailGenerateDataKey"
@@ -101,12 +118,12 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
     }
     condition {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:cloudtrail:arn"
-      values   = ["arn:aws:cloudtrail:*:${local.account_id}:trail/*"]
+      values   = ["arn:${local.partition}:cloudtrail:*:${local.account_id}:trail/*"]
     }
   }
 
@@ -138,7 +155,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
     }
   }
 
@@ -185,7 +202,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     }
   }
 
-  # Allow CloudWatch Logs (for KMS-encrypted log groups / exports)
+  # Allow CloudWatch Logs
   statement {
     sid     = "AllowCloudWatchLogsUseViaService"
     effect  = "Allow"
