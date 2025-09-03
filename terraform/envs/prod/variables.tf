@@ -4,10 +4,11 @@ variable "environment" {}
 variable "owner" {}
 variable "managedby" {}
 
-# Region
+# Defaults
 variable "region" {}
+variable "partition" {}
 
-# SG
+# Security Groups
 variable "quarantine_sg_name" {}
 
 # SSM
@@ -34,9 +35,9 @@ variable "config_role_name" {}
 # Eventbridge
 
 # Lambda
-variable "lambda_cloudtrail_tamper_function_exec_role_name" {}
-variable "lambda_cloudtrail_tamper_function_name" {}
-variable "lambda_ssh_remediation_function_exec_role_name" {}
-variable "lambda_ssh_remediation_function_name" {}
-variable "lambda_crypto_quarantine_function_exec_role_name" {}
-variable "lambda_crypto_quarantine_function_name" {}
+variable "cloudtrail_tamper_function_exec_role_name" {}
+variable "cloudtrail_tamper_function_name" {}
+variable "ssh_remediation_function_exec_role_name" {}
+variable "ssh_remediation_function_name" {}
+variable "crypto_quarantine_function_exec_role_name" {}
+variable "crypto_quarantine_function_name" {}

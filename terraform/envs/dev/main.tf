@@ -87,35 +87,35 @@ module "config" {
 }
 
 module "lambda" {
-  source                                           = "../../modules/lambda"
-  lambda_cloudtrail_tamper_function_name           = var.lambda_cloudtrail_tamper_function_name
-  lambda_cloudtrail_tamper_function_exec_role_name = var.lambda_cloudtrail_tamper_function_exec_role_name
-  lambda_ssh_remediation_function_name             = var.lambda_ssh_remediation_function_name
-  lambda_ssh_remediation_function_exec_role_name   = var.lambda_ssh_remediation_function_exec_role_name
-  lambda_crypto_quarantine_function_name           = var.lambda_crypto_quarantine_function_name
-  lambda_crypto_quarantine_function_exec_role_name = var.lambda_crypto_quarantine_function_exec_role_name
-  sns_alerts_high_arn                              = module.sns.sns_alerts_high_topic_arn
-  sns_alerts_medium_arn                            = module.sns.sns_alerts_medium_topic_arn
-  central_logs_bucket                              = module.central_logging.central_logs_bucket_name
-  cloudtrail_name                                  = module.cloudtrail.cloudtrail_trail_name
-  kms_key_arn                                      = module.kms.central_logs_key_arn
-  quarantine_sg_id                                 = module.sg.quarantine_sg_id
-  name_prefix                                      = local.name_prefix
-  project                                          = var.project
-  environment                                      = var.environment
-  owner                                            = var.owner
-  managedby                                        = var.managedby
+  source                                    = "../../modules/lambda"
+  cloudtrail_tamper_function_name           = var.cloudtrail_tamper_function_name
+  cloudtrail_tamper_function_exec_role_name = var.cloudtrail_tamper_function_exec_role_name
+  ssh_remediation_function_name             = var.ssh_remediation_function_name
+  ssh_remediation_function_exec_role_name   = var.ssh_remediation_function_exec_role_name
+  crypto_quarantine_function_name           = var.crypto_quarantine_function_name
+  crypto_quarantine_function_exec_role_name = var.crypto_quarantine_function_exec_role_name
+  sns_alerts_high_arn                       = module.sns.sns_alerts_high_topic_arn
+  sns_alerts_medium_arn                     = module.sns.sns_alerts_medium_topic_arn
+  central_logs_bucket                       = module.central_logging.central_logs_bucket_name
+  cloudtrail_name                           = module.cloudtrail.cloudtrail_trail_name
+  kms_key_arn                               = module.kms.central_logs_key_arn
+  quarantine_sg_id                          = module.sg.quarantine_sg_id
+  name_prefix                               = local.name_prefix
+  project                                   = var.project
+  environment                               = var.environment
+  owner                                     = var.owner
+  managedby                                 = var.managedby
 }
 
 module "eventbridge" {
-  source                                        = "../../modules/eventbridge"
-  lambda_cloudtrail_tamper_shield_function_arn  = module.lambda.lambda_cloudtrail_tamper_function_arn
-  lambda_cloudtrail_tamper_shield_function_name = module.lambda.lambda_cloudtrail_tamper_function_name
-  lambda_ssh_remediation_function_arn           = module.lambda.lambda_ssh_remediation_function_arn
-  lambda_ssh_remediation_function_name          = module.lambda.lambda_ssh_remediation_function_name
-  lambda_crypto_quarantine_function_arn         = module.lambda.lambda_crypto_quarantine_function_arn
-  lambda_crypto_quarantine_function_name        = module.lambda.lambda_crypto_quarantine_function_name
-  cloudtrail_name                               = module.cloudtrail.cloudtrail_trail_name
-  cloudtrail_arn                                = module.cloudtrail.cloudtrail_trail_arn
-  name_prefix                                   = local.name_prefix
+  source                          = "../../modules/eventbridge"
+  cloudtrail_tamper_function_arn  = module.lambda.cloudtrail_tamper_function_arn
+  cloudtrail_tamper_function_name = module.lambda.cloudtrail_tamper_function_name
+  ssh_remediation_function_arn    = module.lambda.ssh_remediation_function_arn
+  ssh_remediation_function_name   = module.lambda.ssh_remediation_function_name
+  crypto_quarantine_function_arn  = module.lambda.crypto_quarantine_function_arn
+  crypto_quarantine_function_name = module.lambda.crypto_quarantine_function_name
+  cloudtrail_name                 = module.cloudtrail.cloudtrail_trail_name
+  cloudtrail_arn                  = module.cloudtrail.cloudtrail_trail_arn
+  name_prefix                     = local.name_prefix
 }

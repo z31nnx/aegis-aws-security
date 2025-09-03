@@ -5,10 +5,10 @@ variable "name_prefix" {
 variable "cloudtrail_name" {}
 variable "cloudtrail_arn" {}
 
-variable "lambda_cloudtrail_tamper_shield_function_arn" {}
-variable "lambda_cloudtrail_tamper_shield_function_name" {}
-variable "lambda_ssh_remediation_function_arn" {}
-variable "lambda_ssh_remediation_function_name" {}
-variable "lambda_crypto_quarantine_function_arn" {}
-variable "lambda_crypto_quarantine_function_name" {}
+variable "cloudtrail_tamper_function_arn" {}
+variable "cloudtrail_tamper_function_name" {}
+variable "ssh_remediation_function_arn" {}
+variable "ssh_remediation_function_name" {}
+variable "crypto_quarantine_function_arn" {}
+variable "crypto_quarantine_function_name" {}
 

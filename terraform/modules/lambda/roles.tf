@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "lambda_trust" {
   }
 }
 
-data "aws_iam_policy_document" "lambda_cloudtrail_tamper_function_permissions" {
+data "aws_iam_policy_document" "cloudtrail_tamper_function_permissions" {
   statement {
     sid       = "Logs"
     effect    = "Allow"
@@ -59,27 +59,27 @@ data "aws_iam_policy_document" "lambda_cloudtrail_tamper_function_permissions" {
   }
 }
 
-resource "aws_iam_role" "lambda_cloudtrail_tamper_function_exec_role" {
-  name               = "${var.name_prefix}-${var.lambda_cloudtrail_tamper_function_exec_role_name}"
+resource "aws_iam_role" "cloudtrail_tamper_function_exec_role" {
+  name               = "${var.name_prefix}-${var.cloudtrail_tamper_function_exec_role_name}"
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_cloudtrail_tamper_function_basic_logs" {
-  role       = aws_iam_role.lambda_cloudtrail_tamper_function_exec_role.name
+resource "aws_iam_role_policy_attachment" "cloudtrail_tamper_function_basic_logs" {
+  role       = aws_iam_role.cloudtrail_tamper_function_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_policy" "lambda_cloudtrail_tamper_function_permissions" {
-  name   = "${var.name_prefix}-${var.lambda_cloudtrail_tamper_function_exec_role_name}-policy"
-  policy = data.aws_iam_policy_document.lambda_cloudtrail_tamper_function_permissions.json
+resource "aws_iam_policy" "cloudtrail_tamper_function_permissions" {
+  name   = "${var.name_prefix}-${var.cloudtrail_tamper_function_exec_role_name}-policy"
+  policy = data.aws_iam_policy_document.cloudtrail_tamper_function_permissions.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_cloudtrail_tamper_attach" {
-  role       = aws_iam_role.lambda_cloudtrail_tamper_function_exec_role.name
-  policy_arn = aws_iam_policy.lambda_cloudtrail_tamper_function_permissions.arn
+resource "aws_iam_role_policy_attachment" "cloudtrail_tamper_attach" {
+  role       = aws_iam_role.cloudtrail_tamper_function_exec_role.name
+  policy_arn = aws_iam_policy.cloudtrail_tamper_function_permissions.arn
 }
 
-data "aws_iam_policy_document" "lambda_ssh_remediation_function_permissions" {
+data "aws_iam_policy_document" "ssh_remediation_function_permissions" {
   # EC2 SG: read, revoke, tag
   statement {
     sid    = "EC2SecurityGroupOps"
@@ -119,24 +119,24 @@ data "aws_iam_policy_document" "lambda_ssh_remediation_function_permissions" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_ssh_remediation_function_basic_logs" {
-  role       = aws_iam_role.lambda_ssh_remediation_function_exec_role.name
+resource "aws_iam_role_policy_attachment" "ssh_remediation_function_basic_logs" {
+  role       = aws_iam_role.ssh_remediation_function_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
-resource "aws_iam_role" "lambda_ssh_remediation_function_exec_role" {
-  name               = "${var.name_prefix}-${var.lambda_ssh_remediation_function_exec_role_name}"
+resource "aws_iam_role" "ssh_remediation_function_exec_role" {
+  name               = "${var.name_prefix}-${var.ssh_remediation_function_exec_role_name}"
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_policy" "lambda_ssh_remediation_function_permissions" {
-  name   = "${var.name_prefix}-${var.lambda_ssh_remediation_function_exec_role_name}-policy"
-  policy = data.aws_iam_policy_document.lambda_ssh_remediation_function_permissions.json
+resource "aws_iam_policy" "ssh_remediation_function_permissions" {
+  name   = "${var.name_prefix}-${var.ssh_remediation_function_exec_role_name}-policy"
+  policy = data.aws_iam_policy_document.ssh_remediation_function_permissions.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_ssh_guard_attach" {
-  role       = aws_iam_role.lambda_ssh_remediation_function_exec_role.name
-  policy_arn = aws_iam_policy.lambda_ssh_remediation_function_permissions.arn
+resource "aws_iam_role_policy_attachment" "ssh_remediation_attach" {
+  role       = aws_iam_role.ssh_remediation_function_exec_role.name
+  policy_arn = aws_iam_policy.ssh_remediation_function_permissions.arn
 }
 
 data "aws_iam_policy_document" "lambda_crypto_permissions" {
@@ -215,22 +215,22 @@ data "aws_iam_policy_document" "lambda_crypto_permissions" {
   }
 }
 
-resource "aws_iam_role" "lambda_crypto_exec_role" {
-  name               = "${var.name_prefix}-${var.lambda_crypto_quarantine_function_exec_role_name}"
+resource "aws_iam_role" "crypto_quarantine_exec_role" {
+  name               = "${var.name_prefix}-${var.crypto_quarantine_function_exec_role_name}"
   assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_crypto_basic_logs" {
-  role       = aws_iam_role.lambda_crypto_exec_role.name
+resource "aws_iam_role_policy_attachment" "crypto_quarantine_basic_logs" {
+  role       = aws_iam_role.crypto_quarantine_exec_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_iam_policy" "lambda_crypto_permissions" {
-  name   = "${var.name_prefix}-${var.lambda_crypto_quarantine_function_exec_role_name}-policy"
+  name   = "${var.name_prefix}-${var.crypto_quarantine_function_exec_role_name}-policy"
   policy = data.aws_iam_policy_document.lambda_crypto_permissions.json
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_crypto_attach" {
-  role       = aws_iam_role.lambda_crypto_exec_role.name
+resource "aws_iam_role_policy_attachment" "crypto_quarantine_attach" {
+  role       = aws_iam_role.crypto_quarantine_exec_role.name
   policy_arn = aws_iam_policy.lambda_crypto_permissions.arn
 }
