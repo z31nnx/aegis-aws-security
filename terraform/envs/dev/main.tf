@@ -31,6 +31,7 @@ module "guardduty" {
 
 module "security_hub" {
   source = "../../modules/security_hub"
+  depends_on = [ module.config, module.guardduty]
 }
 
 module "sg" {
@@ -47,10 +48,12 @@ module "ssm" {
 }
 
 module "sns" {
-  source      = "../../modules/sns"
-  sns_emails  = var.sns_emails
-  kms_key_arn = module.kms.aegis_key_arn
-  name_prefix = local.name_prefix
+  source                       = "../../modules/sns"
+  sns_emails                   = var.sns_emails
+  sns_alerts_high_topic_name   = var.sns_alerts_high_topic_name
+  sns_alerts_medium_topic_name = var.sns_alerts_medium_topic_name
+  kms_key_arn                  = module.kms.aegis_key_arn
+  name_prefix                  = local.name_prefix
 }
 
 module "central_logging" {
@@ -61,12 +64,12 @@ module "central_logging" {
 }
 
 module "kms" {
-  source                         = "../../modules/kms"
-  cloudtrail_name                = var.cloudtrail_name
-  main_username                  = var.main_username
-  kms_key_alias                  = var.kms_key_alias
-  central_logs_bucket_arn        = module.central_logging.central_logs_bucket_arn
-  name_prefix                    = local.name_prefix
+  source                  = "../../modules/kms"
+  cloudtrail_name         = var.cloudtrail_name
+  main_username           = var.main_username
+  kms_key_alias           = var.kms_key_alias
+  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
+  name_prefix             = local.name_prefix
 }
 
 
@@ -90,11 +93,11 @@ module "sqs" {
   source                         = "../../modules/sqs"
   dlq_name                       = var.dlq_name
   kms_key_arn                    = module.kms.aegis_key_arn
-  cloudtrail_tamper_function_arn = module.lambda.cloudtrail_tamper_function_arn
-  ssh_remediation_function_arn   = module.lambda.ssh_remediation_function_arn
-  crypto_quarantine_function_arn = module.lambda.crypto_quarantine_function_arn
+  cloudtrail_tamper_function_arn = module.lambda.cloudtrail_tamper["function_arn"]
+  ssh_remediation_function_arn   = module.lambda.ssh_remediation["function_arn"]
+  crypto_quarantine_function_arn = module.lambda.crypto_quarantine["function_arn"]
   name_prefix                    = local.name_prefix
-  depends_on = [module.kms]
+  depends_on                     = [module.kms]
 }
 
 module "lambda" {
@@ -121,12 +124,12 @@ module "lambda" {
 
 module "eventbridge" {
   source                          = "../../modules/eventbridge"
-  cloudtrail_tamper_function_arn  = module.lambda.cloudtrail_tamper_function_arn
-  cloudtrail_tamper_function_name = module.lambda.cloudtrail_tamper_function_name
-  ssh_remediation_function_arn    = module.lambda.ssh_remediation_function_arn
-  ssh_remediation_function_name   = module.lambda.ssh_remediation_function_name
-  crypto_quarantine_function_arn  = module.lambda.crypto_quarantine_function_arn
-  crypto_quarantine_function_name = module.lambda.crypto_quarantine_function_name
+  cloudtrail_tamper_function_arn  = module.lambda.cloudtrail_tamper["function_arn"]
+  cloudtrail_tamper_function_name = module.lambda.cloudtrail_tamper["function_name"]
+  ssh_remediation_function_arn    = module.lambda.ssh_remediation["function_arn"]
+  ssh_remediation_function_name   = module.lambda.ssh_remediation["function_name"]
+  crypto_quarantine_function_arn  = module.lambda.crypto_quarantine["function_arn"]
+  crypto_quarantine_function_name = module.lambda.crypto_quarantine["function_name"]
   cloudtrail_name                 = module.cloudtrail.cloudtrail_trail_name
   cloudtrail_arn                  = module.cloudtrail.cloudtrail_trail_arn
   name_prefix                     = local.name_prefix
