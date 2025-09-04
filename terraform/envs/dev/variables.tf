@@ -18,6 +18,9 @@ variable "ssm_instance_profile_name" {}
 # SNS
 variable "sns_emails" {}
 
+# SQS
+variable "dlq_name" {}
+
 # KMS Keys
 variable "main_username" {}
 variable "kms_key_alias" {}

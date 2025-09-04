@@ -3,5 +3,5 @@ variable "name_prefix" {
 }
 
 variable "cloudtrail_name" {}
-variable "central_logs_key_arn" {}
+variable "aegis_key_arn" {}
 variable "central_logs_bucket_name" {}

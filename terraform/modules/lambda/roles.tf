@@ -57,6 +57,12 @@ data "aws_iam_policy_document" "cloudtrail_tamper_function_permissions" {
       values   = [var.sns_alerts_high_arn]
     }
   }
+  statement {
+    sid      = "AllowSendToAegisDLQ"
+    effect   = "Allow"
+    actions  = ["sqs:SendMessage"]
+    resources = [var.aegis_lambda_dlq_arn]
+  }
 }
 
 resource "aws_iam_role" "cloudtrail_tamper_function_exec_role" {
@@ -116,6 +122,12 @@ data "aws_iam_policy_document" "ssh_remediation_function_permissions" {
       variable = "kms:EncryptionContext:aws:sns:topicArn"
       values   = [var.sns_alerts_high_arn]
     }
+  }
+  statement {
+    sid      = "AllowSendToAegisDLQ"
+    effect   = "Allow"
+    actions  = ["sqs:SendMessage"]
+    resources = [var.aegis_lambda_dlq_arn]
   }
 }
 
@@ -212,6 +224,12 @@ data "aws_iam_policy_document" "lambda_crypto_permissions" {
     effect    = "Allow"
     actions   = ["ec2:DisassociateIamInstanceProfile"]
     resources = ["*"]
+  }
+  statement {
+    sid      = "AllowSendToAegisDLQ"
+    effect   = "Allow"
+    actions  = ["sqs:SendMessage"]
+    resources = [var.aegis_lambda_dlq_arn]
   }
 }
 

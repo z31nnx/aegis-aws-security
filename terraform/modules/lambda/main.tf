@@ -36,6 +36,10 @@ resource "aws_lambda_function" "cloudtrail_tamper_function" {
       })
     }
   }
+
+  dead_letter_config {
+    target_arn = var.aegis_lambda_dlq_arn
+  }
 }
 
 data "archive_file" "ssh_remediation_zip" {
@@ -59,6 +63,10 @@ resource "aws_lambda_function" "ssh_remediation_function" {
     variables = {
       SNS_HIGH = var.sns_alerts_high_arn
     }
+  }
+
+  dead_letter_config {
+    target_arn = var.aegis_lambda_dlq_arn
   }
 }
 
@@ -88,5 +96,9 @@ resource "aws_lambda_function" "crypto_quarantine_function" {
       TAKE_SNAPSHOTS  = "true"
       ISOLATION_SG_ID = var.quarantine_sg_id # leave blank so code auto-creates Aegis-Isolation-SG
     }
+  }
+
+  dead_letter_config {
+    target_arn = var.aegis_lambda_dlq_arn
   }
 }

@@ -332,6 +332,9 @@ def lambda_handler(event, context):
     src_ip = detail.get("sourceIPAddress", "unknown")
     region = detail.get("awsRegion", os.getenv("AWS_REGION", "unknown"))
     when = (detail.get("eventTime") or datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z")
+    
+    if event.get("test_fail"):
+        raise Exception("Forced test failure for DLQ test")
 
     if evt not in ALLOWED_EVENTS:
         logger.info("skip: event %s not in ALLOWED_EVENTS", evt)

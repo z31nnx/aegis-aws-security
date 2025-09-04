@@ -2,11 +2,11 @@ data "aws_caller_identity" "me" {}
 data "aws_region" "current" {}
 data "aws_partition" "current" {}
 
-resource "aws_kms_key" "central_logs_key" {
-  description             = "Main key for central logs"
+resource "aws_kms_key" "aegis_key" {
+  description             = "Main key for aegis"
   enable_key_rotation     = true
   deletion_window_in_days = 30
-  policy                  = data.aws_iam_policy_document.central_logs_policy.json
+  policy                  = data.aws_iam_policy_document.aegis_key_policy.json
 
   lifecycle {
     prevent_destroy = false # set true to prevent accidental deletion
@@ -14,12 +14,12 @@ resource "aws_kms_key" "central_logs_key" {
 
 }
 
-resource "aws_kms_alias" "central_logs_key_alias" {
+resource "aws_kms_alias" "aegis_key_alias" {
   name          = "alias/${var.name_prefix}-${var.kms_key_alias}"
-  target_key_id = aws_kms_key.central_logs_key.key_id
+  target_key_id = aws_kms_key.aegis_key.key_id
 }
 
-data "aws_iam_policy_document" "central_logs_policy" {
+data "aws_iam_policy_document" "aegis_key_policy" {
   # Root
   statement {
     sid     = "RootAdmin"
@@ -199,6 +199,32 @@ data "aws_iam_policy_document" "central_logs_policy" {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:s3:arn"
       values   = ["${var.central_logs_bucket_arn}/*"]
+    }
+  }
+    
+    # Allow SQS to use this key for queues
+   statement {
+    sid     = "AllowSQSUseOfCMK"
+    effect  = "Allow"
+    actions = ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey*", "kms:DescribeKey"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["sqs.amazonaws.com"]
+    }
+
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["sqs.${local.region}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [local.account_id]
     }
   }
 
