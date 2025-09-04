@@ -1,3 +1,7 @@
+data "aws_caller_identity" "me" {}
+data "aws_region" "current" {}
+data "aws_partition" "current" {}
+
 resource "aws_s3_bucket" "central_logs_bucket" {
   bucket        = "${var.name_prefix}-${var.central_bucket_name}"
   force_destroy = true # Default = false
@@ -15,7 +19,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "central_logs_buck
 
   rule {
     apply_server_side_encryption_by_default {
-      kms_master_key_id = var.central_logs_kms_key_arn
+      kms_master_key_id = var.aegis_key_arn
       sse_algorithm     = "aws:kms"
     }
     bucket_key_enabled = true
@@ -64,7 +68,7 @@ data "aws_iam_policy_document" "central_logs_bucket" {
     condition {
       test     = "ArnLike"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/*"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/*"]
     }
   }
 
@@ -90,7 +94,7 @@ data "aws_iam_policy_document" "central_logs_bucket" {
     condition {
       test     = "ArnLike"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/*"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/*"]
     }
   }
 
@@ -192,54 +196,6 @@ data "aws_iam_policy_document" "central_logs_bucket" {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
       values   = [local.account_id]
-    }
-  }
-
-  statement {
-    sid     = "AllowVPCFlowLogsToPutObject"
-    effect  = "Allow"
-    actions = ["s3:PutObject"]
-    principals {
-      type        = "Service"
-      identifiers = ["delivery.logs.amazonaws.com"]
-    }
-    resources = [
-      "${aws_s3_bucket.central_logs_bucket.arn}/AWSLogs/${local.account_id}/*"
-    ]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = ["arn:aws:logs:${local.region}:${local.account_id}:*"]
-    }
-    condition {
-      test     = "StringEquals"
-      variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
-    }
-  }
-  statement {
-    sid     = "AWSLogDeliveryAclCheck1"
-    effect  = "Allow"
-    actions = ["s3:GetBucketAcl", "s3:ListBucket"]
-    principals {
-      type        = "Service"
-      identifiers = ["delivery.logs.amazonaws.com"]
-    }
-    resources = [aws_s3_bucket.central_logs_bucket.arn]
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-    condition {
-      test     = "ArnLike"
-      variable = "aws:SourceArn"
-      values   = ["arn:aws:logs:${local.region}:${local.account_id}:*"]
     }
   }
 }

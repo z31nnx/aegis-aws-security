@@ -5,7 +5,7 @@
 An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**) and real-time auto-remediation (**EventBridge + Lambda + SNS**).
 
 # Overview 
-This project bootstraps your AWS cloud account with a security spine baked in, all using Terraform (IaC). The spine enforces baseline controls (AWS Config) for compliance, S3 for central logs, one KMS key for encryptions (cheaper, faster, easy to rotate), and 3 lambda remediation that utilizes modern architecture with CloudTrail, EventBridge, and SNS for real time detection, remediation, and alert. It solves common security concerns such as open ports, log tampering, and malicious activity like crypto mining. 
+This project bootstraps your AWS cloud account with a security spine baked in, all using Terraform (IaC). The spine enforces baseline controls (AWS Config) for compliance, S3 for central logs, one KMS key for encryptions (cheaper, faster, easy to rotate), and 3 lambda remediation that utilizes modern architecture with CloudTrail, EventBridge, and SNS for real time detection, remediation, and alert. It solves security concerns such as open ports, log tampering, and malicious activity (GuardDuty CryptoCurrency/Bitcoin mining findings). 
 
 Because security is job zero, I wanted to implement what I have learned from my AWS Security Specialty certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Compting and Cybersecurity. 
 
@@ -17,9 +17,10 @@ Because security is job zero, I wanted to implement what I have learned from my 
 - **Real-time response:** 
   - CloudTrail tamper auto-remediation (StopLogging/DeleteTrail/UpdateTrail/PutEventSelectors).
   - SSH/RDP world-open guard for Security Groups.
+  - GuardDuty CryptoCurrency (Bitcoin mining) findings. 
 - **Alerts:** Encrypted SNS topics (HIGH / MED) with clear, actionable emails.
 
-> **Note:** Currently 2 remediation Lambdas are deployed. A third (crypto-mining) is planned.
+
 
 # Prerequisites
 - **Terraform**: [Install](https://developer.hashicorp.com/terraform/install)

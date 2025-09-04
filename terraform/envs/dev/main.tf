@@ -29,6 +29,10 @@ module "guardduty" {
   region = var.region
 }
 
+module "security_hub" {
+  source = "../../modules/security_hub"
+}
+
 module "sg" {
   source             = "../../modules/sg"
   name_prefix        = local.name_prefix
@@ -45,35 +49,32 @@ module "ssm" {
 module "sns" {
   source      = "../../modules/sns"
   sns_emails  = var.sns_emails
-  kms_key_arn = module.kms.central_logs_key_arn
+  kms_key_arn = module.kms.aegis_key_arn
   name_prefix = local.name_prefix
 }
 
 module "central_logging" {
-  source                   = "../../modules/central_logging"
-  region                   = var.region
-  central_bucket_name      = var.central_bucket_name
-  central_logs_kms_key_arn = module.kms.central_logs_key_arn
-  name_prefix              = local.name_prefix
+  source              = "../../modules/central_logging"
+  central_bucket_name = var.central_bucket_name
+  aegis_key_arn       = module.kms.aegis_key_arn
+  name_prefix         = local.name_prefix
 }
 
 module "kms" {
-  source                  = "../../modules/kms"
-  cloudtrail_name         = var.cloudtrail_name
-  region                  = var.region
-  main_username           = var.main_username
-  kms_key_alias           = var.kms_key_alias
-  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
-  name_prefix             = local.name_prefix
+  source                         = "../../modules/kms"
+  cloudtrail_name                = var.cloudtrail_name
+  main_username                  = var.main_username
+  kms_key_alias                  = var.kms_key_alias
+  central_logs_bucket_arn        = module.central_logging.central_logs_bucket_arn
+  name_prefix                    = local.name_prefix
 }
 
 
 module "cloudtrail" {
   source                   = "../../modules/cloudtrail"
-  region                   = var.region
   cloudtrail_name          = var.cloudtrail_name
   central_logs_bucket_name = module.central_logging.central_logs_bucket_name
-  central_logs_key_arn     = module.kms.central_logs_key_arn
+  aegis_key_arn            = module.kms.aegis_key_arn
   name_prefix              = local.name_prefix
 }
 
@@ -85,67 +86,48 @@ module "config" {
   name_prefix              = local.name_prefix
 }
 
+module "sqs" {
+  source                         = "../../modules/sqs"
+  dlq_name                       = var.dlq_name
+  kms_key_arn                    = module.kms.aegis_key_arn
+  cloudtrail_tamper_function_arn = module.lambda.cloudtrail_tamper_function_arn
+  ssh_remediation_function_arn   = module.lambda.ssh_remediation_function_arn
+  crypto_quarantine_function_arn = module.lambda.crypto_quarantine_function_arn
+  name_prefix                    = local.name_prefix
+  depends_on = [module.kms]
+}
+
 module "lambda" {
-  source                                           = "../../modules/lambda"
-  lambda_cloudtrail_tamper_function_name           = var.lambda_cloudtrail_tamper_function_name
-  lambda_cloudtrail_tamper_function_exec_role_name = var.lambda_cloudtrail_tamper_function_exec_role_name
-  lambda_ssh_remediation_function_name             = var.lambda_ssh_remediation_function_name
-  lambda_ssh_remediation_function_exec_role_name   = var.lambda_ssh_remediation_function_exec_role_name
-  lambda_crypto_quarantine_function_name           = var.lambda_crypto_quarantine_function_name
-  lambda_crypto_quarantine_function_exec_role_name = var.lambda_crypto_quarantine_function_exec_role_name
-  sns_alerts_high_arn                              = module.sns.sns_alerts_high_topic_arn
-  sns_alerts_medium_arn                            = module.sns.sns_alerts_medium_topic_arn
-  central_logs_bucket                              = module.central_logging.central_logs_bucket_name
-  cloudtrail_name                                  = module.cloudtrail.cloudtrail_trail_name
-  kms_key_arn                                      = module.kms.central_logs_key_arn
-  quarantine_sg_id                                 = module.sg.quarantine_sg_id
-  name_prefix                                      = local.name_prefix
-  project                                          = var.project
-  environment                                      = var.environment
-  owner                                            = var.owner
-  managedby                                        = var.managedby
+  source                                    = "../../modules/lambda"
+  cloudtrail_tamper_function_name           = var.cloudtrail_tamper_function_name
+  cloudtrail_tamper_function_exec_role_name = var.cloudtrail_tamper_function_exec_role_name
+  ssh_remediation_function_name             = var.ssh_remediation_function_name
+  ssh_remediation_function_exec_role_name   = var.ssh_remediation_function_exec_role_name
+  crypto_quarantine_function_name           = var.crypto_quarantine_function_name
+  crypto_quarantine_function_exec_role_name = var.crypto_quarantine_function_exec_role_name
+  sns_alerts_high_arn                       = module.sns.sns_alerts_high_topic_arn
+  sns_alerts_medium_arn                     = module.sns.sns_alerts_medium_topic_arn
+  aegis_lambda_dlq_arn                      = module.sqs.aegis_lambda_dlq_arn
+  central_logs_bucket                       = module.central_logging.central_logs_bucket_name
+  cloudtrail_name                           = module.cloudtrail.cloudtrail_trail_name
+  kms_key_arn                               = module.kms.aegis_key_arn
+  quarantine_sg_id                          = module.sg.quarantine_sg_id
+  name_prefix                               = local.name_prefix
+  project                                   = var.project
+  environment                               = var.environment
+  owner                                     = var.owner
+  managedby                                 = var.managedby
 }
 
 module "eventbridge" {
-  source                                        = "../../modules/eventbridge"
-  lambda_cloudtrail_tamper_shield_function_arn  = module.lambda.lambda_cloudtrail_tamper_function_arn
-  lambda_cloudtrail_tamper_shield_function_name = module.lambda.lambda_cloudtrail_tamper_function_name
-  lambda_ssh_remediation_function_arn           = module.lambda.lambda_ssh_remediation_function_arn
-  lambda_ssh_remediation_function_name          = module.lambda.lambda_ssh_remediation_function_name
-  lambda_crypto_quarantine_function_arn         = module.lambda.lambda_crypto_quarantine_function_arn
-  lambda_crypto_quarantine_function_name        = module.lambda.lambda_crypto_quarantine_function_name
-  cloudtrail_name                               = module.cloudtrail.cloudtrail_trail_name
-  cloudtrail_arn                                = module.cloudtrail.cloudtrail_trail_arn
-  name_prefix                                   = local.name_prefix
+  source                          = "../../modules/eventbridge"
+  cloudtrail_tamper_function_arn  = module.lambda.cloudtrail_tamper_function_arn
+  cloudtrail_tamper_function_name = module.lambda.cloudtrail_tamper_function_name
+  ssh_remediation_function_arn    = module.lambda.ssh_remediation_function_arn
+  ssh_remediation_function_name   = module.lambda.ssh_remediation_function_name
+  crypto_quarantine_function_arn  = module.lambda.crypto_quarantine_function_arn
+  crypto_quarantine_function_name = module.lambda.crypto_quarantine_function_name
+  cloudtrail_name                 = module.cloudtrail.cloudtrail_trail_name
+  cloudtrail_arn                  = module.cloudtrail.cloudtrail_trail_arn
+  name_prefix                     = local.name_prefix
 }
-
-/*
-module "vpc" {
-  source          = "../../modules/vpc"
-  vpc_name        = var.vpc_name
-  cidr_block      = var.cidr_block
-  public_subnets  = var.public_subnets
-  private_subnets = var.private_subnets
-  name_prefix     = local.name_prefix
-}
-
-module "endpoints" {
-  source = "../../modules/endpoints"
-  region = var.region
-  vpc_id = module.vpc.vpc_id
-  private_rt_id = module.vpc.private_rt_id
-  name_prefix = local.name_prefix
-
-}
-
-module "flow_logs" {
-  source = "../../modules/flow_logs"
-  region = var.region
-  flow_log_name = var.flow_log_name
-  central_logs_bucket_arn = module.central_logging.central_logs_bucket_arn
-  vpc_id = module.vpc.vpc_id
-  name_prefix = local.name_prefix
-}
-*/
-
-# uncomment when you need these modules 

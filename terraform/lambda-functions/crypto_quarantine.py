@@ -14,7 +14,7 @@ sns = boto3.client("sns", config=_CFG)
 sts = boto3.client("sts", config=_CFG)
 iam = boto3.client("iam", config=_CFG)
 
-# ===== Env (required/optional) =====
+#  Env (required/optional)
 SNS_HIGH = os.environ["SNS_HIGH"]  # SNS topic ARN
 STOP_INSTANCE  = os.getenv("STOP_INSTANCE", "true").lower() in ("1","true","yes","on")
 DETACH_PROFILE = os.getenv("DETACH_PROFILE","true").lower() in ("1","true","yes","on")
@@ -22,8 +22,8 @@ TAKE_SNAPSHOTS = os.getenv("TAKE_SNAPSHOTS","true").lower() in ("1","true","yes"
 ISOLATION_SG_ID = os.getenv("ISOLATION_SG_ID","").strip()  # optional pre-created SG id
 FINDING_PREFIX  = os.getenv("FINDING_PREFIX","CryptoCurrency:EC2/")
 
-# ===== Tagging (colon style, no env needed) =====
-TAG_STATUS_KEY   = "Aegis:Status"       # Quarantined / Isolated
+# Tagging (colon style, no env needed)
+TAG_STATUS_KEY   = "Aegis:Status"     
 TAG_LASTFIX_KEY  = "Aegis:LastFix"
 TAG_REASON_KEY   = "Aegis:Reason"
 TAG_FINDING_KEY  = "Aegis:FindingType"
@@ -32,7 +32,7 @@ TAG_ISO_SG_KEY   = "Aegis:IsolationSG"
 TAG_STOPPED_KEY  = "Aegis:Stopped"
 TAG_REMEDIATOR   = "Aegis:Remediator"
 
-# ===== Helpers =====
+# Helpers 
 def _self():
     try:
         ident = sts.get_caller_identity()
@@ -107,7 +107,7 @@ def _format_email(when, region, instance_id, iso_sg, prev_sgs, snapshots, stoppe
         pass
     return "\n".join(lines)
 
-# ===== Core helpers =====
+# Core helpers 
 def _extract_instance_id(event) -> str | None:
     try:
         return event["detail"]["resource"]["instanceDetails"]["instanceId"]

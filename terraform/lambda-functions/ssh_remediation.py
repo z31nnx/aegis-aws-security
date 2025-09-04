@@ -13,7 +13,7 @@ ec2 = boto3.client("ec2", config=_CFG)
 sns = boto3.client("sns", config=_CFG)
 sts = boto3.client("sts", config=_CFG)
 
-# env (required) 
+# Env (required) 
 SNS_HIGH = os.environ["SNS_HIGH"]  
 ADMIN_PORTS = {
     int(p.strip()) for p in os.getenv("ADMIN_PORTS", "22,3389").split(",") if p.strip()

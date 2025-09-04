@@ -1,8 +1,12 @@
-resource "aws_kms_key" "central_logs_key" {
-  description             = "Main key for central logs"
+data "aws_caller_identity" "me" {}
+data "aws_region" "current" {}
+data "aws_partition" "current" {}
+
+resource "aws_kms_key" "aegis_key" {
+  description             = "Main key for aegis"
   enable_key_rotation     = true
   deletion_window_in_days = 30
-  policy                  = data.aws_iam_policy_document.central_logs_policy.json
+  policy                  = data.aws_iam_policy_document.aegis_key_policy.json
 
   lifecycle {
     prevent_destroy = false # set true to prevent accidental deletion
@@ -10,12 +14,12 @@ resource "aws_kms_key" "central_logs_key" {
 
 }
 
-resource "aws_kms_alias" "central_logs_key_alias" {
+resource "aws_kms_alias" "aegis_key_alias" {
   name          = "alias/${var.name_prefix}-${var.kms_key_alias}"
-  target_key_id = aws_kms_key.central_logs_key.key_id
+  target_key_id = aws_kms_key.aegis_key.key_id
 }
 
-data "aws_iam_policy_document" "central_logs_policy" {
+data "aws_iam_policy_document" "aegis_key_policy" {
   # Root
   statement {
     sid     = "RootAdmin"
@@ -23,12 +27,12 @@ data "aws_iam_policy_document" "central_logs_policy" {
     actions = ["kms:*"]
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${local.account_id}:root", ]
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:root", ]
     }
     resources = ["*"]
   }
 
-  # Named key admins 
+  # Key admins 
   statement {
     sid    = "KeyAdminsNoDecrypt"
     effect = "Allow"
@@ -39,10 +43,23 @@ data "aws_iam_policy_document" "central_logs_policy" {
     ]
     principals {
       type        = "AWS"
-      identifiers = ["arn:aws:iam::${local.account_id}:user/${var.main_username}", "arn:aws:iam::${local.account_id}:role/admin"]
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:user/${var.main_username}", "arn:aws:iam::${local.account_id}:role/admin"]
     }
     resources = ["*"]
   }
+
+  # Key users
+  statement {
+    sid     = "Allow use of the key"
+    effect  = "Allow"
+    actions = ["kms:Encrypt", "kms:Decrypt", "kms:ReEncrypt*", "kms:GenerateDataKey*", "kms:DescribeKey"]
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:user/${var.main_username}", "arn:aws:iam::${local.account_id}:role/admin"]
+    }
+    resources = ["*"]
+  }
+
 
   # Allow SNS to use this key for topics
   statement {
@@ -62,7 +79,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:sns:topicArn"
-      values   = ["arn:aws:sns:${local.region}:${local.account_id}:*"]
+      values   = ["arn:${local.partition}:sns:${local.region}:${local.account_id}:*"]
     }
   }
 
@@ -87,7 +104,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     }
   }
 
-  # Allow CloudTrail to use the key (GenerateDataKey/Encrypt/Decrypt/Describe)
+  # Allow CloudTrail to use the key
 
   statement {
     sid    = "AllowCloudTrailGenerateDataKey"
@@ -101,12 +118,12 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
     }
     condition {
       test     = "StringLike"
       variable = "kms:EncryptionContext:aws:cloudtrail:arn"
-      values   = ["arn:aws:cloudtrail:*:${local.account_id}:trail/*"]
+      values   = ["arn:${local.partition}:cloudtrail:*:${local.account_id}:trail/*"]
     }
   }
 
@@ -138,7 +155,7 @@ data "aws_iam_policy_document" "central_logs_policy" {
     condition {
       test     = "StringEquals"
       variable = "aws:SourceArn"
-      values   = ["arn:aws:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
+      values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${var.name_prefix}-${var.cloudtrail_name}"]
     }
   }
 
@@ -184,8 +201,34 @@ data "aws_iam_policy_document" "central_logs_policy" {
       values   = ["${var.central_logs_bucket_arn}/*"]
     }
   }
+    
+    # Allow SQS to use this key for queues
+   statement {
+    sid     = "AllowSQSUseOfCMK"
+    effect  = "Allow"
+    actions = ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey*", "kms:DescribeKey"]
 
-  # Allow CloudWatch Logs (for KMS-encrypted log groups / exports)
+    principals {
+      type        = "Service"
+      identifiers = ["sqs.amazonaws.com"]
+    }
+
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["sqs.${local.region}.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
+      variable = "kms:CallerAccount"
+      values   = [local.account_id]
+    }
+  }
+
+  # Allow CloudWatch Logs
   statement {
     sid     = "AllowCloudWatchLogsUseViaService"
     effect  = "Allow"
@@ -200,25 +243,6 @@ data "aws_iam_policy_document" "central_logs_policy" {
       variable = "kms:ViaService"
       values   = ["logs.${local.region}.amazonaws.com"]
     }
-    condition {
-      test     = "StringEquals"
-      variable = "aws:SourceAccount"
-      values   = [local.account_id]
-    }
-  }
-  statement {
-    sid    = "AllowVPCFlowLogsUseOfKey"
-    effect = "Allow"
-    principals {
-      type        = "Service"
-      identifiers = ["delivery.logs.amazonaws.com"]
-    }
-    actions = [
-      "kms:Encrypt",
-      "kms:GenerateDataKey*",
-      "kms:DescribeKey"
-    ]
-    resources = ["*"]
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
