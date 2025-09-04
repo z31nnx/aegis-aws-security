@@ -58,9 +58,9 @@ data "aws_iam_policy_document" "cloudtrail_tamper_function_permissions" {
     }
   }
   statement {
-    sid      = "AllowSendToAegisDLQ"
-    effect   = "Allow"
-    actions  = ["sqs:SendMessage"]
+    sid       = "AllowSendToAegisDLQ"
+    effect    = "Allow"
+    actions   = ["sqs:SendMessage"]
     resources = [var.aegis_lambda_dlq_arn]
   }
 }
@@ -124,9 +124,9 @@ data "aws_iam_policy_document" "ssh_remediation_function_permissions" {
     }
   }
   statement {
-    sid      = "AllowSendToAegisDLQ"
-    effect   = "Allow"
-    actions  = ["sqs:SendMessage"]
+    sid       = "AllowSendToAegisDLQ"
+    effect    = "Allow"
+    actions   = ["sqs:SendMessage"]
     resources = [var.aegis_lambda_dlq_arn]
   }
 }
@@ -226,9 +226,9 @@ data "aws_iam_policy_document" "lambda_crypto_permissions" {
     resources = ["*"]
   }
   statement {
-    sid      = "AllowSendToAegisDLQ"
-    effect   = "Allow"
-    actions  = ["sqs:SendMessage"]
+    sid       = "AllowSendToAegisDLQ"
+    effect    = "Allow"
+    actions   = ["sqs:SendMessage"]
     resources = [var.aegis_lambda_dlq_arn]
   }
 }

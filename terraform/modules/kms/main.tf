@@ -201,9 +201,9 @@ data "aws_iam_policy_document" "aegis_key_policy" {
       values   = ["${var.central_logs_bucket_arn}/*"]
     }
   }
-    
-    # Allow SQS to use this key for queues
-   statement {
+
+  # Allow SQS to use this key for queues
+  statement {
     sid     = "AllowSQSUseOfCMK"
     effect  = "Allow"
     actions = ["kms:Encrypt", "kms:Decrypt", "kms:GenerateDataKey*", "kms:DescribeKey"]

@@ -1,12 +1,28 @@
-data "aws_iam_role" "config_service_role" {
-  name = "AWSServiceRoleForConfig"
+data "aws_iam_policy_document" "config_assume" {
+  statement {
+    actions = ["sts:AssumeRole"]
+    principals {
+      type        = "Service"
+      identifiers = ["config.amazonaws.com"]
+    }
+  }
 }
 
-# Sometimes the service role is there, sometimes its not. If theres error, create the AWSServiceRoleForConfig in the IAM role console
+resource "aws_iam_role" "config_role" {
+  name               = "${var.name_prefix}-${var.config_name}-role"
+  assume_role_policy = data.aws_iam_policy_document.config_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "config_managed" {
+  role       = aws_iam_role.config_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
+}
+
+# Custom config role to assume, sometimes thethe managed role doesn't exist, this allow the code to run smooth during terraform apply 
 
 resource "aws_config_configuration_recorder" "config_recorder" {
   name     = "${var.name_prefix}-${var.config_name}-recorder"
-  role_arn = data.aws_iam_role.config_service_role.arn
+  role_arn = aws_iam_role.config_role.arn
 
   recording_group {
     all_supported                 = true

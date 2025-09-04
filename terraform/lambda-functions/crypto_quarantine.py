@@ -48,6 +48,16 @@ def _arn_region(arn: str) -> str | None:
         return arn.split(":")[3]
     except Exception:
         return None
+def _is_sample(event) -> bool:
+    try:
+        return bool(
+            (event.get("detail") or {})
+            .get("service", {})
+            .get("additionalInfo", {})
+            .get("sample", False)
+        )
+    except Exception:
+        return False
 
 def _utc_ts():
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00","Z")
@@ -262,7 +272,24 @@ def lambda_handler(event, context):
 
     inst = _describe_instance(instance_id)
     if not inst:
-        return {"ok": False, "error": "describe-failed", "instance": instance_id}
+        # ALERT-ONLY fallback path (covers SAMPLE findings & missing resources)
+        is_sample = _is_sample(event)
+        when = _utc_ts()
+        region = event.get("region") or os.getenv("AWS_REGION","unknown")
+        body = _format_email(
+            when, region, instance_id or "—", "", [], [], False,
+            ["describe-failed: instance not found (likely SAMPLE or wrong region)"],
+            event, ftype or "unknown"
+        )
+        subject = f"[Aegis/HIGH] Crypto-mining finding (alert-only) → {instance_id or '—'} ({region})"
+        _publish_high(subject, body, {"findingType": ftype or "unknown", "alertOnly": True, "sample": is_sample})
+        return {
+            "ok": False,
+            "error": "describe-failed",
+            "instance": instance_id,
+            "alertOnly": True,
+            "sample": is_sample
+        }
 
     region = (inst.get("Placement", {}).get("AvailabilityZone") or "unknown")[:-1] or os.getenv("AWS_REGION","unknown")
     when = _utc_ts()

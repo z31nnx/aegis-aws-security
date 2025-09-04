@@ -12,4 +12,4 @@ variable "main_username" {
 }
 
 variable "cloudtrail_name" {}
-variable "central_logs_bucket_arn" {} 
+variable "central_logs_bucket_arn" {}
