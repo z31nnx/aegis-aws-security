@@ -1,15 +1,6 @@
 variable "name_prefix" {}
-
-variable "sns_alerts_high_arn" {
-  type        = string
-  description = "SNS topic ARN for High severity alerts"
-}
-
-variable "sns_alerts_medium_arn" {
-  type        = string
-  description = "SNS topic ARN for Medium severity alerts"
-}
-
+variable "sns_alerts_high_arn" {}
+variable "sns_alerts_medium_arn" {}
 variable "project" {}
 variable "environment" {}
 variable "owner" {}

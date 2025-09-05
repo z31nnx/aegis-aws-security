@@ -61,7 +61,7 @@ resource "aws_lambda_function" "ssh_remediation_function" {
 
   environment {
     variables = {
-      SNS_HIGH = var.sns_alerts_high_arn
+      SNS_MED = var.sns_alerts_medium_arn
     }
   }
 

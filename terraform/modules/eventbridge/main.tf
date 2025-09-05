@@ -82,38 +82,3 @@ resource "aws_lambda_permission" "lambda_crypto_quarantine_allow_invoke" {
   source_arn    = aws_cloudwatch_event_rule.lambda_crypto_quarantine_rule.arn
 }
 
-/*
-resource "aws_cloudwatch_event_rule" "lambda_crypto_quarantine_test_rule" {
-  name        = "${var.crypto_quarantine_function_name}-test-rule"
-  description = "Debug: GuardDuty SAMPLE crypto findings quarantine"
-  event_pattern = jsonencode({
-    "source": ["aws.guardduty"],
-    "detail-type": ["GuardDuty Finding"],
-    "detail": {
-      "type": [
-        "CryptoCurrency:EC2/BitcoinTool.B",
-        "CryptoCurrency:EC2/BitcoinTool.B!DNS",
-      ],
-      "service": {
-        "additionalInfo": {
-          "sample": [true]
-        }
-      }
-    }
-  })
-}
-
-resource "aws_cloudwatch_event_target" "lambda_crypto_quarantine_test_rule_target" {
-  rule      = aws_cloudwatch_event_rule.lambda_crypto_quarantine_test_rule.name
-  target_id = "crypto-quarantine-test"
-  arn       = var.crypto_quarantine_function_arn
-}
-
-resource "aws_lambda_permission" "lambda_crypto_quarantine_test_allow_invoke" {
-  statement_id  = "AllowEventBridgeGuardDutyInvokeTest" 
-  action        = "lambda:InvokeFunction"
-  function_name = var.crypto_quarantine_function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.lambda_crypto_quarantine_test_rule.arn
-}
-*/

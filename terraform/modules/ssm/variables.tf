@@ -1,7 +1,4 @@
-variable "name_prefix" {
-  type = string
-}
-
+variable "name_prefix" {}
 variable "ssm_role_name" {}
 variable "ssm_instance_profile_name" {}
 variable "ssm_role_policies" {

@@ -13,13 +13,17 @@ ec2 = boto3.client("ec2", config=_CFG)
 sns = boto3.client("sns", config=_CFG)
 sts = boto3.client("sts", config=_CFG)
 
-# Env (required) 
-SNS_HIGH = os.environ["SNS_HIGH"]  
+# Env (required)
+# Prefer MEDIUM; gracefully fall back to HIGH so you can roll out without outages.
+SNS_MED = os.environ.get("SNS_MED") or os.environ.get("SNS_HIGH")
+if not SNS_MED:
+    raise RuntimeError("Missing SNS_MED (or SNS_HIGH fallback) environment variable")
+
 ADMIN_PORTS = {
     int(p.strip()) for p in os.getenv("ADMIN_PORTS", "22,3389").split(",") if p.strip()
 }
 
-# tagging (constants; no env needed) 
+# tagging (constants; no env needed)
 TAG_STATUS_KEY = "Aegis:Status"
 TAG_LASTFIX_KEY = "Aegis:LastFix"
 TAG_REASON_KEY = "Aegis:Reason"
@@ -73,16 +77,17 @@ def _actor_meta(detail: dict):
     })
     return actor
 
-def _publish_high(subject, body, attrs=None):
+def _publish_medium(subject, body, attrs=None):
+    """Publish MEDIUM-severity alert to SNS (Aegis SSH/RDP guard)."""
     attrs = attrs or {}
     m = {k: {"DataType":"String","StringValue":str(v)} for k,v in attrs.items()}
     m.update({
-        "severity":   {"DataType":"String","StringValue":"HIGH"},
+        "severity":   {"DataType":"String","StringValue":"MEDIUM"},
         "service":    {"DataType":"String","StringValue":"ec2"},
         "automation": {"DataType":"String","StringValue":"aegis-ssh-guard"},
     })
     try:
-        resp = sns.publish(TopicArn=SNS_HIGH, Subject=subject[:100], Message=body, MessageAttributes=m)
+        resp = sns.publish(TopicArn=SNS_MED, Subject=subject[:100], Message=body, MessageAttributes=m)
         logger.info(f"SNS published. MessageId={resp.get('MessageId')}")
     except ClientError as e:
         err = (e.response.get("Error") or {})
@@ -117,7 +122,7 @@ def _format_email(evt, when, region, groups, removed_rules, actor, errors, event
         ]
     lines += ["", "SecurityGroups:"] + [f"- {g}" for g in (groups or ["—"])]
 
-    lines += ["", "Removed rules (tcp/22 world):"]
+    lines += ["", "Removed rules (admin ports world-open):"]
     if removed_rules:
         for g, rules in removed_rules.items():
             if rules:
@@ -136,7 +141,7 @@ def _format_email(evt, when, region, groups, removed_rules, actor, errors, event
         pass
     return "\n".join(lines)
 
-# core SG logic 
+# core SG logic
 def _describe_sg(gid: str) -> dict:
     return ec2.describe_security_groups(GroupIds=[gid])["SecurityGroups"][0]
 
@@ -146,12 +151,9 @@ def _perm_includes_port(p: dict, port: int) -> bool:
     to_p   = p.get("ToPort")
 
     if proto == "tcp":
-        # exact or range that includes port
         if from_p is not None and to_p is not None:
             return from_p <= port <= to_p
-        # some APIs send None with tcp — treat as not matching unless -1
         return False
-    # "-1" means all protocols/ports
     return proto == "-1"
 
 def _find_world_admin_permissions(sg_desc: dict):
@@ -164,12 +166,11 @@ def _find_world_admin_permissions(sg_desc: dict):
     reasons = set()
 
     for p in sg_desc.get("IpPermissions", []):
-        # which admin ports does this permission cover?
         covered = [port for port in ADMIN_PORTS if _perm_includes_port(p, port)]
         if not covered:
             continue
 
-        # IPv4 worlds
+        # IPv4
         for r in p.get("IpRanges", []):
             cidr = r.get("CidrIp")
             if cidr and _is_world(cidr):
@@ -181,7 +182,7 @@ def _find_world_admin_permissions(sg_desc: dict):
                     })
                     reasons.add(str(port))
 
-        # IPv6 worlds
+        # IPv6
         for r6 in p.get("Ipv6Ranges", []):
             cidr6 = r6.get("CidrIpv6")
             if cidr6 and _is_world(cidr6):
@@ -226,7 +227,7 @@ def _extract_group_ids(detail: dict):
             gids.add(gid)
     return list(gids)
 
-# handler 
+# handler
 def lambda_handler(event, context):
     detail = event.get("detail") or {}
     evt    = detail.get("eventName", "UnknownEvent")
@@ -266,10 +267,10 @@ def lambda_handler(event, context):
 
     had_changes = bool(removed_map)
     if had_changes:
-        subject = f"[Aegis/HIGH] SSH world-open remediated ({region})"
+        subject = f"[Aegis/MEDIUM] SSH/RDP world-open remediated ({region})"
         body = _format_email(evt, when, region, groups, removed_map, actor, errors, event, src_ip)
-        _publish_high(subject, body, {"eventName": evt, "removed": True})
+        _publish_medium(subject, body, {"eventName": evt, "removed": True})
     else:
-        logger.info("No world-open SSH rules to remediate; email suppressed.")
+        logger.info("No world-open admin-port rules to remediate; email suppressed.")
 
     return {"ok": (not errors), "removed": removed_map, "errors": errors}

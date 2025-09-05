@@ -17,6 +17,11 @@ variable "ssm_instance_profile_name" {}
 
 # SNS
 variable "sns_emails" {}
+variable "sns_alerts_high_topic_name" {}
+variable "sns_alerts_medium_topic_name" {}
+
+# SQS
+variable "dlq_name" {}
 
 # KMS Keys
 variable "main_username" {}

@@ -1,6 +1,6 @@
 # Default Tags 
 project     = "aegis"
-environment = "dev"
+environment = "prod"
 owner       = "your user or email"
 managedby   = "terraform"
 

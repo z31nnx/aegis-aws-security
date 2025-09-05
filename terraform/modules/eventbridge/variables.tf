@@ -1,10 +1,6 @@
-variable "name_prefix" {
-  type = string
-}
-
+variable "name_prefix" {}
 variable "cloudtrail_name" {}
 variable "cloudtrail_arn" {}
-
 variable "cloudtrail_tamper_function_arn" {}
 variable "cloudtrail_tamper_function_name" {}
 variable "ssh_remediation_function_arn" {}

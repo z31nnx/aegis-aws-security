@@ -103,7 +103,7 @@ data "aws_iam_policy_document" "ssh_remediation_function_permissions" {
     sid       = "Alerting"
     effect    = "Allow"
     actions   = ["sns:Publish", "sns:GetTopicAttributes"]
-    resources = [var.sns_alerts_high_arn]
+    resources = [var.sns_alerts_medium_arn]
   }
 
   statement {
@@ -120,7 +120,7 @@ data "aws_iam_policy_document" "ssh_remediation_function_permissions" {
     condition {
       test     = "StringEquals"
       variable = "kms:EncryptionContext:aws:sns:topicArn"
-      values   = [var.sns_alerts_high_arn]
+      values   = [var.sns_alerts_medium_arn]
     }
   }
   statement {

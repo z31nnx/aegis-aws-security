@@ -26,7 +26,6 @@ module "ebs" {
 
 module "guardduty" {
   source = "../../modules/guardduty"
-  region = var.region
 }
 
 module "security_hub" {

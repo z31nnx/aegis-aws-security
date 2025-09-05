@@ -1,13 +1,4 @@
-variable "name_prefix" {
-  type = string
-}
-
-variable "ensure_config_slr" {
-  type        = bool
-  default     = true
-  description = "Create AWSServiceRoleForConfig when missing"
-}
-
+variable "name_prefix" {}
 variable "config_name" {}
 variable "config_role_name" {}
 variable "central_logs_bucket_name" {}
