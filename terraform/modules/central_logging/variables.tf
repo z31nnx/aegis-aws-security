@@ -1,3 +1,9 @@
-variable "name_prefix" {}
-variable "central_bucket_name" {}
-variable "aegis_key_arn" {}
+variable "name_prefix" {
+    type = string
+}
+variable "central_bucket_name" {
+    type = string
+}
+variable "aegis_key_arn" {
+    type = module
+}

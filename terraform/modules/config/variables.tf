@@ -1,7 +1,15 @@
-variable "name_prefix" {}
-variable "config_name" {}
-variable "config_role_name" {}
-variable "central_logs_bucket_name" {}
+variable "name_prefix" {
+  type = string
+}
+variable "config_name" {
+  type = string
+}
+variable "config_role_name" {
+  type = string
+}
+variable "central_logs_bucket_name" {
+  type = string
+}
 
 variable "config_rules" {
   type = list(object({

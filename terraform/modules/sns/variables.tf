@@ -1,4 +1,6 @@
-variable "name_prefix" {}
+variable "name_prefix" {
+  type = string
+}
 
 variable "sns_emails" {
   type        = list(string)
@@ -7,6 +9,12 @@ variable "sns_emails" {
   description = "Default sns emails for subscriptions"
 }
 
-variable "sns_alerts_high_topic_name" {}
-variable "sns_alerts_medium_topic_name" {}
-variable "kms_key_arn" {}
+variable "sns_alerts_high_topic_name" {
+  type = string
+}
+variable "sns_alerts_medium_topic_name" {
+  type = string
+}
+variable "kms_key_arn" {
+  type = module
+}

@@ -13,7 +13,3 @@ output "ssm_instance_profile_name" {
 output "ssm_instance_profile_arn" {
   value = aws_iam_instance_profile.ssm_instance_profile.arn
 }
-
-output "attached_policy_arns" {
-  value = var.ssm_role_policies
-}

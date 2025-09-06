@@ -8,8 +8,13 @@ variable "kms_key_alias" {
 }
 
 variable "main_username" {
+  type = string
   description = "Your username in the console"
 }
 
-variable "cloudtrail_name" {}
-variable "central_logs_bucket_arn" {}
+variable "cloudtrail_name" {
+  type = module
+}
+variable "central_logs_bucket_arn" {
+  type = module
+}

@@ -19,22 +19,21 @@ on:
       - 'modules/**'
   workflow_dispatch:
   schedule:
-    - cron: '27 4 * * 3'  # weekly
+    - cron: '27 4 * * 3'  # weekly runs :) 
 
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  terraform-ci:
+  terraform:
+    name: Terraform CI
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.9.5
       - name: Terraform fmt
         run: terraform fmt -check -recursive
       - name: Init (no backend)
