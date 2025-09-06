@@ -29,8 +29,8 @@ module "guardduty" {
 }
 
 module "security_hub" {
-  source = "../../modules/security_hub"
-  depends_on = [ module.config, module.guardduty]
+  source     = "../../modules/security_hub"
+  depends_on = [module.config, module.guardduty]
 }
 
 module "sg" {

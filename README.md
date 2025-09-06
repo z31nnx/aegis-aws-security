@@ -124,3 +124,6 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 ## Costs & Environments
 - **Sandbox (ACG/Pluralsight)**: No personal AWS charges; validated here.
 - **Small prod account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
+
+## License
+This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.

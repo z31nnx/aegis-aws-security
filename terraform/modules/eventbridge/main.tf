@@ -57,7 +57,7 @@ resource "aws_cloudwatch_event_rule" "lambda_crypto_quarantine_rule" {
   name        = "${var.crypto_quarantine_function_name}-rule"
   description = "GuardDuty EC2 crypto findings trigger for crypto quarantine lambda function"
   event_pattern = jsonencode({
-    "source"      : ["aws.guardduty"],
+    "source" : ["aws.guardduty"],
     "detail-type" : ["GuardDuty Finding"],
     "detail" : {
       "type" : [
