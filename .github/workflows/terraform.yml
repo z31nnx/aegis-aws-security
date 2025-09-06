@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  terraform:
+  terraform-ci:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -38,9 +38,9 @@ jobs:
       - name: Terraform fmt
         run: terraform fmt -check -recursive
       - name: Init (no backend)
-        run: terraform -chdir=envs/dev init -backend=false
+        run: terraform -chdir=terraform/envs/dev init -backend=false
       - name: Validate
-        run: terraform -chdir=envs/dev validate
+        run: terraform -chdir=terraform/envs/dev validate
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
