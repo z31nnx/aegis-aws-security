@@ -2,10 +2,10 @@ variable "name_prefix" {
   type = string
 }
 variable "sns_alerts_high_arn" {
-  type = module
+  type = string
 }
 variable "sns_alerts_medium_arn" {
-  type = module
+  type = string
 }
 variable "project" {
   type = string
