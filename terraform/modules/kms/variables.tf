@@ -13,8 +13,8 @@ variable "main_username" {
 }
 
 variable "cloudtrail_name" {
-  type = module
+  type = string
 }
 variable "central_logs_bucket_arn" {
-  type = module
+  type = string
 }

@@ -21,19 +21,19 @@ variable "managedby" {
 }
 
 variable "cloudtrail_name" {
-  type = module
+  type = string
 }
 variable "central_logs_bucket" {
-  type = module
+  type = string
 }
 variable "kms_key_arn" {
-  type = module
+  type = string
 }
 variable "quarantine_sg_id" {
-  type = module
+  type = string
 }
 variable "aegis_lambda_dlq_arn" {
-  type = module
+  type = string
 }
 
 variable "cloudtrail_tamper_function_exec_role_name" {

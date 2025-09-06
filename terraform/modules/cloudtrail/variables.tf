@@ -5,8 +5,8 @@ variable "cloudtrail_name" {
   type = string
 }
 variable "aegis_key_arn" {
-  type = module
+  type = string
 }
 variable "central_logs_bucket_name" {
-  type = module
+  type = string
 }
