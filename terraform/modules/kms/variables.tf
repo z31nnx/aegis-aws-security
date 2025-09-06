@@ -8,7 +8,7 @@ variable "kms_key_alias" {
 }
 
 variable "main_username" {
-  type = string
+  type        = string
   description = "Your username in the console"
 }
 

@@ -1,12 +1,12 @@
 variable "name_prefix" {
-    type = string
+  type = string
 }
 variable "cloudtrail_name" {
-    type = string
+  type = string
 }
 variable "aegis_key_arn" {
-    type = module
+  type = module
 }
 variable "central_logs_bucket_name" {
-    type = module
+  type = module
 }
