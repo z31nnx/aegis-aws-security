@@ -1,0 +1,13 @@
+{
+  "detail-type": "GuardDuty Finding",
+  "source": "aws.guardduty",
+  "detail": {
+    "type": "CryptoCurrency:EC2/BitcoinTool.B!DNS",
+    "resource": {
+      "resourceType": "Instance",
+      "instanceDetails": { "instanceId": "i-REPLACE_ME" }
+    }
+  },
+  "region": "us-east-1",
+  "account": "111122223333"
+}

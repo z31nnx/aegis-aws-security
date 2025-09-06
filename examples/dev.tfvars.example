@@ -24,7 +24,7 @@ sns_alerts_medium_topic_name = "security-medium"
 dlq_name = "lambda-dlq"
 
 # KMS Keys
-main_username = "cloud_user"
+main_username = "your_IAM_user"
 kms_key_alias = "key"
 
 # S3
