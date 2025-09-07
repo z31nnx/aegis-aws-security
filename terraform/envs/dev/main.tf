@@ -92,9 +92,6 @@ module "sqs" {
   source                         = "../../modules/sqs"
   dlq_name                       = var.dlq_name
   kms_key_arn                    = module.kms.aegis_key_arn
-  cloudtrail_tamper_function_arn = module.lambda.cloudtrail_tamper["function_arn"]
-  ssh_remediation_function_arn   = module.lambda.ssh_remediation["function_arn"]
-  crypto_quarantine_function_arn = module.lambda.crypto_quarantine["function_arn"]
   name_prefix                    = local.name_prefix
   depends_on                     = [module.kms]
 }
@@ -129,7 +126,4 @@ module "eventbridge" {
   ssh_remediation_function_name   = module.lambda.ssh_remediation["function_name"]
   crypto_quarantine_function_arn  = module.lambda.crypto_quarantine["function_arn"]
   crypto_quarantine_function_name = module.lambda.crypto_quarantine["function_name"]
-  cloudtrail_name                 = module.cloudtrail.cloudtrail_trail_name
-  cloudtrail_arn                  = module.cloudtrail.cloudtrail_trail_arn
-  name_prefix                     = local.name_prefix
 }

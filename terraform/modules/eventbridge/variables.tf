@@ -1,12 +1,3 @@
-variable "name_prefix" {
-  type = string
-}
-variable "cloudtrail_name" {
-  type = string
-}
-variable "cloudtrail_arn" {
-  type = string
-}
 variable "cloudtrail_tamper_function_arn" {
   type = string
 }
