@@ -17,7 +17,7 @@ resource "aws_lambda_function" "cloudtrail_tamper_function" {
 
   environment {
     variables = {
-      TRAIL_NAME     = "${var.cloudtrail_name}"
+      TRAIL_NAME     = var.cloudtrail_name
       LOG_BUCKET     = var.central_logs_bucket
       LOG_PREFIX     = "cloudtrail"
       KMS_KEY_ID     = var.kms_key_arn

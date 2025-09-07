@@ -16,9 +16,6 @@ variable "managedby" {
 variable "region" {
   type = string
 }
-variable "partition" {
-  type = string
-}
 
 # Security Groups
 variable "quarantine_sg_name" {

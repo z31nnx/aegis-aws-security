@@ -9,7 +9,7 @@ data "aws_iam_policy_document" "config_assume" {
 }
 
 resource "aws_iam_role" "config_role" {
-  name               = "${var.name_prefix}-${var.config_name}-role"
+  name               = "${var.name_prefix}-${var.config_role_name}"
   assume_role_policy = data.aws_iam_policy_document.config_assume.json
 }
 

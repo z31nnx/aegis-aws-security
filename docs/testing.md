@@ -12,6 +12,7 @@ This guide demonstrate how to test and validate each automated remediation with 
 # Notes
 - SNS emails sometimes go to spam/junk folder. Confirm subscription first.
 - Destroy test SGs/instances after validating.
+- Destroy any remaining EBS snapshots. 
 
 ## 1. CloudTrail Tamper
 ![cloudtrail diagram](/docs/diagrams/cloudtrail-diagram.png)
