@@ -1,4 +1,6 @@
 # Aegis — AWS Security Baseline & Auto-Remediation
+[![terraform-ci](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg?branch=main)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Status:** Deployable 
 
@@ -93,7 +95,7 @@ terraform destroy -var-file="dev.tfvars"
 ```
 
 # Validation & Testing
-For the full step-by-step testing guide with screenshots, see [docs/testing.md](./docs/testing.md).
+For the full step-by-step testing guide with screenshots, see [docs/testing.md](./docs/testing.md)
 
 | Scenario | How to simulate (safe) | Expected outcome |
 |---|---|---|
@@ -116,7 +118,6 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 ## Limitations & Future Enhancements
 - Currently only single-account setup.
 - Custom VPC but currently there are no workloads being deployed.
-- CI/CD pipeline for automated deployments (tflint, tfsec, etc).
 - SCP for CloudTrail (AWS Organization required)
 - Add more remediation Lambdas (S3 public access detection, compromised IAM key, etc.).
 - Config automation via SSM documents. 
