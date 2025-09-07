@@ -89,11 +89,11 @@ module "config" {
 }
 
 module "sqs" {
-  source                         = "../../modules/sqs"
-  dlq_name                       = var.dlq_name
-  kms_key_arn                    = module.kms.aegis_key_arn
-  name_prefix                    = local.name_prefix
-  depends_on                     = [module.kms]
+  source      = "../../modules/sqs"
+  dlq_name    = var.dlq_name
+  kms_key_arn = module.kms.aegis_key_arn
+  name_prefix = local.name_prefix
+  depends_on  = [module.kms]
 }
 
 module "lambda" {
