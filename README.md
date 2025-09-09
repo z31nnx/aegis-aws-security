@@ -1,5 +1,5 @@
 # Aegis — AWS Security Baseline & Auto-Remediation
-[![terraform-ci](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg?branch=main)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
+[![Terraform CI](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg?branch=main)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 > **Status:** Deployable 
@@ -30,6 +30,16 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - **AWS  Foundational Security Best Practices v1.0.0**
 - **Compliance (AWS Config):** Curated AWS managed rules for a baseline.  Config Auto-remediation with SSM documents is not yet included but its part of the future plans.
 
+## Table of Contents 
+- [Terraform Modules](#terraform-modules)
+- [AWS Config Rules](#aws-config-rules)
+- [Prerequisites](#prerequisites)
+- [Implementation Details](#implementation-details)
+- [Validation & Testing](/docs/testing.md)
+- [Runbook](/RUNBOOK.md)
+- [Troubleshooting](#troubleshooting)
+- [Costs & Environments](#costs--environments)
+- [Limitations & Enhancements](#limitations--future-enhancements)
 
 ## Terraform modules
 
@@ -125,6 +135,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 ## Costs & Environments
 - **Sandbox (ACG/Pluralsight)**: No personal AWS charges; validated here.
 - **Small prod account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
+- Please review [AWS Pricing Calculator](https://calculator.aws/#/) for your use case.
 
 ## License
 This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.

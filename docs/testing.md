@@ -1,7 +1,7 @@
 # Aegis Testing Guide
 This guide demonstrate how to test and validate each automated remediation with safe tests in the AWS console. Each scenario includes the steps, thought process, results, and screenshots. Ensure you have everything ready before going forward with this. See [Prerequisites](/README.md#prerequisites) for more details. 
 
-# Contents: 
+# Table of Contents
 - [CloudTrail Tamper](/docs/testing.md#1-cloudtrail-tamper)
 - [SSH/RDP World-Open Security Groups](/docs/testing.md#2-sshrdp-world-open-security-groups)
 - [GuardDuty Crypto Mining Findings](/docs/testing.md#3-guardduty-crypto-mining-findings)
