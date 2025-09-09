@@ -118,7 +118,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
 
 ## Troubleshooting
-- **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have you your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
+- **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Lambda keeps failing -> DLQ**: Adjust the timeout length if needed especially for CryptoCurrency lambda remediation. Inspect SQS DLQ message for failed automations.
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
