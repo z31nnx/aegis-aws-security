@@ -7,9 +7,9 @@
 An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
 # Overview 
-This project bootstraps your AWS cloud account with a foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena and Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+This project deploys your AWS cloud account with a foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
-Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. 
+Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
 
 # Architecture Diagram
 ![diagram](/docs/diagrams/aegis-diagram-1.png)
@@ -118,8 +118,8 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
 
 ## Troubleshooting
-- **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have you your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder
-- **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins 
+- **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have you your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
+- **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Lambda keeps failing -> DLQ**: Adjust the timeout length if needed especially for CryptoCurrency lambda remediation. Inspect SQS DLQ message for failed automations.
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
 - **Security Hub not enabled**: If for some reason its off,  just enable via console (this is normal, the standards and product subscriptions are still applied). Otherwise config must be enabled in order for Security Hub to work.
@@ -128,14 +128,13 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 ## Limitations & Future Enhancements
 - Currently only single-account setup.
 - Custom VPC but currently there are no workloads being deployed.
-- SCP for CloudTrail (AWS Organization required)
+- SCP for CloudTrail (AWS Organization required).
 - Add more remediation Lambdas (S3 public access detection, compromised IAM key, etc.).
 - Config automation via SSM documents. 
 
 ## Costs & Environments
-- **Sandbox (ACG/Pluralsight)**: No personal AWS charges; validated here.
 - **Small prod account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
-- Please review [AWS Pricing Calculator](https://calculator.aws/#/) for your use case.
+- Please I highly recommend reviewing [AWS Pricing Calculator](https://calculator.aws/#/) for your use case. 
 
 ## License
-This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
+This project is licensed under the MIT License, see the [LICENSE](./LICENSE) file for details.

@@ -1,5 +1,4 @@
-name: terraform-ci
-
+name: Terraform-CI
 on:
   pull_request:
     branches: [ "main", "security" ]
@@ -9,6 +8,7 @@ on:
       - '.github/workflows/**'
       - 'envs/**'
       - 'modules/**'
+      - 'terraform/**'
   push:
     branches: [ "main", "security" ]
     paths:
@@ -17,6 +17,7 @@ on:
       - '.github/workflows/**'
       - 'envs/**'
       - 'modules/**'
+      - 'terraform/**'
   workflow_dispatch:
   schedule:
     - cron: '27 4 * * 3'  # weekly runs :) 
@@ -29,6 +30,9 @@ jobs:
   terraform:
     name: Terraform CI
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        envdir: [ "terraform/envs/dev", "terraform/envs/prod" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
