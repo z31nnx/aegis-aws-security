@@ -1,8 +1,12 @@
 # Aegis — AWS Security Baseline & Auto-Remediation
-[![Terraform CI](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg?branch=main)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
+# Trident AWS 3-Tier Infra
+[![Architecture: Event-Driven](https://img.shields.io/badge/Architecture-Event--Driven-black.svg)](#)
+[![Terraform CI](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
-> **Status:** Deployable 
+[![Cloud: AWS](https://img.shields.io/badge/Cloud-AWS-orange.svg)](#)
+[![IaC: Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC.svg)](#)
+[![Language: Python](https://img.shields.io/badge/Python-3.13-blue.svg)](#)
+[![Status: Deployable](https://img.shields.io/badge/Status-Deployable-green.svg)](#)
 
 An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
