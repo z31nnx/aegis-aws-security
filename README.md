@@ -1,5 +1,4 @@
 # Aegis — AWS Security Baseline & Auto-Remediation
-# Trident AWS 3-Tier Infra
 [![Architecture: Event-Driven](https://img.shields.io/badge/Architecture-Event--Driven-black.svg)](#)
 [![Terraform CI](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
