@@ -7,22 +7,16 @@
 <p align="center">
   <a href="#">
     <img src="https://img.shields.io/badge/Architecture-Event--Driven-black.svg" alt="Architecture Event-Driven" />
-  </a>
   <a href="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml">
     <img src="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg" alt="Terraform CI" />
-  </a>
   <a href="LICENSE">
     <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT" />
-  </a>
   <a href="#">
     <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
-  </a>
   <a href="#">
     <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
-  </a>
   <a href="#">
     <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.13" />
-  </a>
   <a href="#">
     <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
   </a>
