@@ -1,21 +1,39 @@
 # Aegis — AWS Security Baseline & Auto-Remediation
-[![Architecture: Event-Driven](https://img.shields.io/badge/Architecture-Event--Driven-black.svg)](#)
-[![Terraform CI](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg)](https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Cloud: AWS](https://img.shields.io/badge/Cloud-AWS-orange.svg)](#)
-[![IaC: Terraform](https://img.shields.io/badge/IaC-Terraform-7B42BC.svg)](#)
-[![Language: Python](https://img.shields.io/badge/Python-3.13-blue.svg)](#)
-[![Status: Deployable](https://img.shields.io/badge/Status-Deployable-green.svg)](#)
 
-An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
+<p align="center">
+  <img src="./docs/diagrams/aegis-diagram-1.png" alt="Aegis architecture diagram" width="100%" />
+</p>
+
+<p align="center">
+  <a href="#">
+    <img src="https://img.shields.io/badge/Architecture-Event--Driven-black.svg" alt="Architecture Event-Driven" />
+  </a>
+  <a href="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml">
+    <img src="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg" alt="Terraform CI" />
+  </a>
+  <a href="LICENSE">
+    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.13" />
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
+  </a>
+</p>
 
 # Overview 
-This project deploys your AWS cloud account with a foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
+
+This project deploys your designated AWS security account with a foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
 Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
-
-# Architecture Diagram
-![diagram](/docs/diagrams/aegis-diagram-1.png)
 
 # Capabilities / Features
 - **Terraform modules**: Root module + 13 submodules 
@@ -39,7 +57,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 - [Prerequisites](#prerequisites)
 - [Implementation Details](#implementation-details)
 - [Validation & Testing](/docs/testing.md)
-- [Runbook](/RUNBOOK.md)
+- [Runbook](/runbook.md)
 - [Troubleshooting](#troubleshooting)
 - [Costs & Environments](#costs--environments)
 - [Limitations & Enhancements](#limitations--future-enhancements)
@@ -118,7 +136,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 | Crypto mining findings | Go on GuardDuty console and **Generate sample findings** | Lambda fires on GuardDuty CryptoCurrency events via EventBridge service; HIGH SNS alert |
 
 ## Runbook
-- See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
+- See [runbook.md](./runbook.md) for details on how to handle events. 
 
 ## Troubleshooting
 - **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
