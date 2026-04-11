@@ -3,23 +3,14 @@
 <p align="center">
   <img src="./docs/diagrams/aegis-diagram-1.png" alt="Aegis architecture diagram" width="100%" />
 </p>
-
 <p align="center">
-  <a href="#">
-    <img src="https://img.shields.io/badge/Architecture-Event--Driven-black.svg" alt="Architecture Event-Driven" />
-  <a href="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml">
-    <img src="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg" alt="Terraform CI" />
-  <a href="LICENSE">
-    <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT" />
-  <a href="#">
-    <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
-  <a href="#">
-    <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
-  <a href="#">
-    <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.13" />
-  <a href="#">
-    <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
-  </a>
+  <img src="https://img.shields.io/badge/Architecture-Event--Driven-black.svg" alt="Architecture Event-Driven" />
+  <img src="https://github.com/z31nnx/aegis-aws-security/actions/workflows/terraform.yml/badge.svg" alt="Terraform CI" />
+  <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT" />
+  <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
+  <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
+  <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.13" />
+  <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
 </p>
 
 # Overview 
