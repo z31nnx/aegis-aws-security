@@ -13,4 +13,6 @@ variable "owner" {
 variable "managedby" {
   type = string
 }
-
+variable "main_username" {
+  type = string
+}
