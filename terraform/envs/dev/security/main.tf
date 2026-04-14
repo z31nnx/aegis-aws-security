@@ -161,12 +161,12 @@ module "central-logs-bucket" {
       }
       resources = [local.bucket_arn]
       conditions = [
-  {
-    test     = "StringEquals"
-    variable = "aws:SourceArn"
-    values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${local.prefix}-${var.trail_name}"]
-  }
-]
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceArn"
+          values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${local.prefix}-${var.trail_name}"]
+        }
+      ]
     },
     {
       sid     = "AllowCloudTrailListBucket"
@@ -227,3 +227,9 @@ module "main_trail" {
   prefix     = local.prefix
   depends_on = [module.central-logs-bucket]
 }
+
+module "ebs_encryption" {
+  source = "../../../modules/ebs"
+  enable = true
+}
+

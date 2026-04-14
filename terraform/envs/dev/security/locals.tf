@@ -12,7 +12,7 @@ locals {
   region     = data.aws_region.current.region
   partition  = data.aws_partition.current.partition
 
-  bucket_arn      = module.central-logs-bucket.bucket_arn
-  bucket_id       = module.central-logs-bucket.bucket_id
+  bucket_arn = module.central-logs-bucket.bucket_arn
+  bucket_id  = module.central-logs-bucket.bucket_id
 }
 
