@@ -6,8 +6,8 @@ module "main_key" {
   source                  = "../../../modules/kms"
   key_alias               = "central-key"
   description             = "Main key for ${local.prefix}"
-  enable_key_rotation     = true
   deletion_window_in_days = 30
+  enable_key_rotation     = true
   prevent_destroy         = false
 
   key_policy = [
@@ -206,6 +206,63 @@ module "central-logs-bucket" {
           values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${local.prefix}-${var.trail_name}"]
         }
       ]
+    },
+    {
+      sid     = "AWSConfigBucketPermissionsCheck"
+      effect  = "Allow"
+      actions = ["s3:GetBucketAcl"]
+      principals = {
+        type        = "Service"
+        identifiers = ["config.amazonaws.com"]
+
+      }
+      resources = [local.bucket_arn]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        }
+      ]
+    },
+    {
+      sid     = "AWSConfigBucketExistenceCheck"
+      effect  = "Allow"
+      actions = ["s3:ListBucket"]
+      principals = {
+        type        = "Service"
+        identifiers = ["config.amazonaws.com"]
+      }
+      resources = [local.bucket_arn]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        }
+      ]
+    },
+    {
+      sid     = "AWSConfigBucketDelivery"
+      effect  = "Allow"
+      actions = ["s3:PutObject"]
+      principals = {
+        type        = "Service"
+        identifiers = ["config.amazonaws.com"]
+      }
+      resources = ["${local.bucket_arn}/config/AWSLogs/${local.account_id}/*"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "s3:x-amz-acl"
+          values   = ["bucket-owner-full-control"]
+        },
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        }
+      ]
     }
   ]
   prefix = local.prefix
@@ -215,7 +272,7 @@ module "main_trail" {
   source                        = "../../../modules/cloudtrail"
   trail_name                    = var.trail_name
   bucket_id                     = module.central-logs-bucket.bucket_id
-  key_prefix                    = "cloudtrail"
+  s3_prefix                     = "cloudtrail"
   kms_key_arn                   = module.main_key.key_arn
   include_global_service_events = false
   is_multi_region_trail         = true
@@ -233,3 +290,51 @@ module "ebs_encryption" {
   enable = true
 }
 
+module "config" {
+  source                        = "../../../modules/config"
+  config_role_name              = "config-role"
+  config_name                   = "config"
+  all_supported                 = true
+  include_global_resource_types = true
+  recording_frequency           = "CONTINUOUS"
+  bucket_name                   = module.central-logs-bucket.bucket
+  s3_prefix                     = "config"
+  rules = [
+    {
+      owner             = "AWS"
+      name              = "ec2-ebs-encryption-by-default"
+      source_identifier = "EC2_EBS_ENCRYPTION_BY_DEFAULT"
+    },
+    {
+      owner             = "AWS"
+      name              = "ec2-imdsv2-check"
+      source_identifier = "EC2_IMDSV2_CHECK"
+    },
+    {
+      owner             = "AWS"
+      name              = "restricted-common-ports"
+      source_identifier = "RESTRICTED_INCOMING_TRAFFIC"
+    },
+    {
+      owner             = "AWS"
+      name              = "restricted-ssh"
+      source_identifier = "INCOMING_SSH_DISABLED"
+    },
+    {
+      owner             = "AWS"
+      name              = "s3-bucket-level-public-access-prohibited"
+      source_identifier = "S3_BUCKET_LEVEL_PUBLIC_ACCESS_PROHIBITED"
+    },
+    {
+      owner             = "AWS"
+      name              = "cloudtrail-enabled"
+      source_identifier = "CLOUD_TRAIL_ENABLED"
+    },
+    {
+      owner             = "AWS"
+      name              = "iam-user-mfa-enabled"
+      source_identifier = "IAM_USER_MFA_ENABLED"
+    }
+  ]
+  prefix = local.prefix
+}

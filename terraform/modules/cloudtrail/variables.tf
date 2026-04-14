@@ -7,7 +7,7 @@ variable "trail_name" {
 variable "bucket_id" {
   type = string
 }
-variable "key_prefix" {
+variable "s3_prefix" {
   type = string
 }
 variable "kms_key_arn" {

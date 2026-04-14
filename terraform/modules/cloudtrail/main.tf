@@ -1,7 +1,7 @@
 resource "aws_cloudtrail" "trail" {
   name                          = "${var.prefix}-${var.trail_name}"
   s3_bucket_name                = var.bucket_id
-  s3_key_prefix                 = var.key_prefix
+  s3_key_prefix                 = var.s3_prefix
   kms_key_id                    = var.kms_key_arn
   enable_log_file_validation    = var.enable_log_file_validation
   include_global_service_events = var.include_global_service_events
