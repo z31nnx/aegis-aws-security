@@ -16,3 +16,7 @@ variable "managedby" {
 variable "main_username" {
   type = string
 }
+
+variable "trail_name" {
+  type = string
+}
