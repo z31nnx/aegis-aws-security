@@ -285,6 +285,52 @@ module "main_trail" {
   depends_on = [module.central-logs-bucket]
 }
 
+module "guardduty" {
+  source = "../../../modules/guardduty"
+  region = var.region
+  enable = true
+  features = [
+    {
+      name   = "S3_DATA_EVENTS"
+      status = "ENABLED"
+    },
+    {
+      name   = "EKS_AUDIT_LOGS"
+      status = "ENABLED"
+    },
+    {
+      name   = "EBS_MALWARE_PROTECTION"
+      status = "ENABLED"
+    },
+    {
+      name   = "RDS_LOGIN_EVENTS"
+      status = "ENABLED"
+    },
+    {
+      name   = "LAMBDA_NETWORK_LOGS"
+      status = "ENABLED"
+    },
+    {
+      name   = "RUNTIME_MONITORING"
+      status = "ENABLED"
+      additional_configuration = [
+        {
+          name   = "EKS_ADDON_MANAGEMENT"
+          status = "ENABLED"
+        },
+        {
+          name   = "ECS_FARGATE_AGENT_MANAGEMENT"
+          status = "ENABLED"
+        },
+        {
+          name   = "EC2_AGENT_MANAGEMENT"
+          status = "ENABLED"
+        }
+      ]
+    }
+  ]
+}
+
 module "ebs_encryption" {
   source = "../../../modules/ebs"
   enable = true
