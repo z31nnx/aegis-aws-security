@@ -2,7 +2,8 @@ variable "enable" {
   type = bool
 }
 variable "region" {
-  type = string
+  type    = string
+  default = null
 }
 variable "finding_publishing_frequency" {
   type    = string

@@ -1,5 +1,6 @@
 variable "region" {
-  type = string
+  type    = string
+  default = null
 }
 variable "enable_default_standards" {
   type = bool

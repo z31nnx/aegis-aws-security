@@ -309,7 +309,7 @@ module "main_trail" {
 
 module "guardduty" {
   source                       = "../../../modules/guardduty"
-  region                       = var.region
+  region                       = null
   finding_publishing_frequency = "FIFTEEN_MINUTES"
   enable                       = true
   features = [
@@ -375,6 +375,20 @@ module "sns_medium" {
   emails      = var.emails
   protocol    = "email"
   prefix      = local.prefix
+}
+
+module "securityhub" {
+  source                    = "../../../modules/security_hub"
+  region                    = null
+  enable_default_standards  = true
+  auto_enable_controls      = true
+  control_finding_generator = "SECURITY_CONTROL"
+  standards                 = []
+  product_subscriptions = [
+    "arn:${local.partition}:securityhub:${local.region}::product/aws/guardduty",
+    "arn:${local.partition}:securityhub:${local.region}::product/aws/inspector"
+  ]
+  depends_on = [module.config]
 }
 
 module "config" {
