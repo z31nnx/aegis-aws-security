@@ -339,6 +339,33 @@ module "config" {
   prefix = local.prefix
 }
 
+module "ssm_role" {
+  source               = "../../../modules/iam_role"
+  role_name            = "ssm-role"
+  description          = "Main IAM role form SSM"
+  path                 = "/"
+  max_session_duration = 3600
+  trust_policy = [
+    {
+      sid     = "Trust"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole"]
+
+      principals = {
+        type        = "Service"
+        identifiers = ["ec2.amazonaws.com"]
+      }
+      conditions = []
+    }
+  ]
+  policy = []
+  policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  ]
+  prefix = local.prefix
+}
+
 module "ssm_security_group" {
   source      = "../../../modules/sg"
   sg_name     = "ssm-sg"
@@ -354,11 +381,11 @@ module "ssm_security_group" {
 }
 
 module "quarantine_sg" {
-  source = "../../../modules/sg"
-  sg_name = "quarantine-sg"
+  source      = "../../../modules/sg"
+  sg_name     = "quarantine-sg"
   description = "Quarantined SG"
-  vpc_id = null
-  ingress = {}
-  egress = {}
-  prefix = local.prefix
+  vpc_id      = null
+  ingress     = {}
+  egress      = {}
+  prefix      = local.prefix
 }
