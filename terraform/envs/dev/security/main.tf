@@ -383,7 +383,9 @@ module "securityhub" {
   enable_default_standards  = true
   auto_enable_controls      = true
   control_finding_generator = "SECURITY_CONTROL"
-  standards                 = []
+  standards                 = [
+    "arn:${local.partition}:securityhub:${local.region}::standards/aws-resource-tagging-standard/v/1.0.0"
+  ]
   product_subscriptions = [
     "arn:${local.partition}:securityhub:${local.region}::product/aws/guardduty",
     "arn:${local.partition}:securityhub:${local.region}::product/aws/inspector"
