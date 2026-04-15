@@ -162,6 +162,11 @@ module "main_key" {
       resources = ["*"]
       conditions = [
         {
+          test     = "StringLike"
+          variable = "kms:EncryptionContext:aws:logs:arn"
+          values   = ["arn:${local.partition}:logs:${local.region}:${local.account_id}:log-group:*"]
+        },
+        {
           test     = "StringEquals"
           variable = "aws:SourceAccount"
           values   = [local.account_id]
@@ -532,6 +537,48 @@ module "quarantine_sg" {
   prefix      = local.prefix
 }
 
+module "central_cloudwatch_dashboard" {
+  source = "../../modules/cloudwatch_dashboard"
+
+  prefix         = local.prefix
+  dashboard_name = "central-dashboard"
+  region         = var.region
+
+  widgets = [
+    {
+      type   = "metric"
+      x      = 0
+      y      = 0
+      width  = 12
+      height = 6
+
+      properties = {
+        metrics = [
+          ["AWS/Lambda", "Invocations", "FunctionName", "aegis-remediator"]
+        ]
+        period = 300
+        stat   = "Sum"
+        title  = "Lambda Invocations"
+      }
+    },
+    {
+      type   = "metric"
+      x      = 12
+      y      = 0
+      width  = 12
+      height = 6
+
+      properties = {
+        metrics = [
+          ["AWS/Lambda", "Errors", "FunctionName", "aegis-remediator"]
+        ]
+        period = 300
+        stat   = "Sum"
+        title  = "Lambda Errors"
+      }
+    }
+  ]
+}
 module "central_cloudwatch_log_group" {
   source                      = "../../modules/cloudwatch_logs"
   log_group_name              = "central-lambda-log-group"
