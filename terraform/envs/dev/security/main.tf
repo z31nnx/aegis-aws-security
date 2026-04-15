@@ -274,7 +274,7 @@ module "main_trail" {
   bucket_id                     = module.central-logs-bucket.bucket_id
   s3_prefix                     = "cloudtrail"
   kms_key_arn                   = module.main_key.key_arn
-  include_global_service_events = false
+  include_global_service_events = true
   is_multi_region_trail         = true
   enable_log_file_validation    = true
   event_selector = {
@@ -336,5 +336,29 @@ module "config" {
       source_identifier = "IAM_USER_MFA_ENABLED"
     }
   ]
+  prefix = local.prefix
+}
+
+module "ssm_security_group" {
+  source      = "../../../modules/sg"
+  sg_name     = "ssm-sg"
+  description = "Main Security Group of SSM in ${local.prefix}"
+  vpc_id      = null
+  egress = {
+    "allow_all" = {
+      cidr_ipv4   = "0.0.0.0/0"
+      ip_protocol = "-1"
+    }
+  }
+  prefix = local.prefix
+}
+
+module "quarantine_sg" {
+  source = "../../../modules/sg"
+  sg_name = "quarantine-sg"
+  description = "Quarantined SG"
+  vpc_id = null
+  ingress = {}
+  egress = {}
   prefix = local.prefix
 }
