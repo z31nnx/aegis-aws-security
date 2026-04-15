@@ -150,6 +150,23 @@ module "main_key" {
           values   = ["arn:${local.partition}:sns:${local.region}:${local.account_id}:*"]
         }
       ]
+    },
+    {
+      sid     = "AllowCloudWatchLogs"
+      effect  = "Allow"
+      actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
+      principals = {
+        type        = "Service"
+        identifiers = ["logs.amazonaws.com"]
+      }
+      resources = ["*"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        }
+      ]
     }
   ]
 
@@ -524,3 +541,4 @@ module "central_cloudwatch_log_group" {
   kms_key_arn                 = module.main_key.key_arn
   prefix                      = local.prefix
 }
+
