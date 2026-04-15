@@ -21,7 +21,7 @@ This project is designed to deploy your AWS cloud account as a central security 
 Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
 
 # Capabilities / Features
-- **Terraform modules**: Root module + 13 submodules 
+- **Terraform modules**: Root module + 15 submodules 
 - **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
 - **Centralized logging:** One S3 central logging bucket (BPA on, versioning, SSE-KMS).
 - **KMS encryption:** Single KMS key to keep costs/simple and easier to rotate.
@@ -56,7 +56,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | `cloudtrail/`      | Multi-Region CloudTrail with KMS encryption & log validation |
 | `config/`          | AWS Config rules baseline & recorder               |
 | `cloudwatch_logs/`          | Central logs for Lambda automations              |
-| `clouddwatch_dashboard/`          | Central dashboard for lambda automations            |
+| `cloudwatch_dashboard/`          | Central dashboard for lambda automations            |
 | `ebs/`             | Enforces default EBS encryption at account level   |
 | `eventbridge/`     | Event rules for Lambda automation            |
 | `guardduty/`       | GuardDuty detector for continuous threat detection |

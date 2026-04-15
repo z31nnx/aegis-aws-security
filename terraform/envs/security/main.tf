@@ -514,3 +514,13 @@ module "quarantine_sg" {
   egress      = {}
   prefix      = local.prefix
 }
+
+module "central_cloudwatch_log_group" {
+  source = "../../modules/cloudwatch_logs"
+  log_group_name = "central-lambda-log-group"
+  log_group_class = "STANDARD"
+  deletion_protection_enabled = false # set to true when not testing
+  retention_in_days = 7 
+  kms_key_arn = module.main_key.key_arn
+  prefix = local.prefix
+}
