@@ -5,7 +5,7 @@ variable "function_name" {
   type = string
 }
 variable "description" {
-  type = string
+  type    = string
   default = null
 }
 variable "role_arn" {

@@ -8,11 +8,11 @@ variable "deletion_protection_enabled" {
   type = bool
 }
 variable "log_group_class" {
-  type = string
+  type    = string
   default = "STANDARD"
 }
 variable "retention_in_days" {
-  type = number
+  type    = number
   default = 7
 }
 variable "kms_key_arn" {
