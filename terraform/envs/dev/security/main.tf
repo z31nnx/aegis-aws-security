@@ -286,9 +286,10 @@ module "main_trail" {
 }
 
 module "guardduty" {
-  source = "../../../modules/guardduty"
-  region = var.region
-  enable = true
+  source                       = "../../../modules/guardduty"
+  region                       = var.region
+  finding_publishing_frequency = "FIFTEEN_MINUTES"
+  enable                       = true
   features = [
     {
       name   = "S3_DATA_EVENTS"

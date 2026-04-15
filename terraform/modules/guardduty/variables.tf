@@ -4,6 +4,10 @@ variable "enable" {
 variable "region" {
   type = string
 }
+variable "finding_publishing_frequency" {
+  type    = string
+  default = "SIX_HOURS"
+}
 variable "features" {
   type = list(object({
     name   = string

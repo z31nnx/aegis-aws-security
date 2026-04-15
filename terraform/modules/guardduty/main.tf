@@ -1,6 +1,7 @@
 resource "aws_guardduty_detector" "detector" {
-  enable = var.enable
-  region = var.region
+  enable                       = var.enable
+  region                       = var.region
+  finding_publishing_frequency = var.finding_publishing_frequency
 }
 
 resource "aws_guardduty_detector_feature" "feature" {
