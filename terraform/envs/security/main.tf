@@ -3,7 +3,7 @@ data "aws_region" "current" {}
 data "aws_partition" "current" {}
 
 module "main_key" {
-  source                  = "../../../modules/kms"
+  source                  = "../../modules/kms"
   key_alias               = "central-key"
   description             = "Main key for ${local.prefix}"
   deletion_window_in_days = 30
@@ -157,7 +157,7 @@ module "main_key" {
 }
 
 module "central-logs-bucket" {
-  source        = "../../../modules/s3"
+  source        = "../../modules/s3"
   bucket_name   = "central-security-logs-test"
   force_destroy = true
   versioning    = "Enabled"
@@ -291,7 +291,7 @@ module "central-logs-bucket" {
 }
 
 module "main_trail" {
-  source                        = "../../../modules/cloudtrail"
+  source                        = "../../modules/cloudtrail"
   trail_name                    = var.trail_name
   bucket_id                     = module.central-logs-bucket.bucket_id
   s3_prefix                     = "cloudtrail"
@@ -308,7 +308,7 @@ module "main_trail" {
 }
 
 module "guardduty" {
-  source                       = "../../../modules/guardduty"
+  source                       = "../../modules/guardduty"
   region                       = null
   finding_publishing_frequency = "FIFTEEN_MINUTES"
   enable                       = true
@@ -355,12 +355,12 @@ module "guardduty" {
 }
 
 module "ebs_encryption" {
-  source = "../../../modules/ebs"
+  source = "../../modules/ebs"
   enable = true
 }
 
 module "sns_high" {
-  source      = "../../../modules/sns"
+  source      = "../../modules/sns"
   topic_name  = "sns-high"
   kms_key_arn = module.main_key.key_arn
   emails      = var.emails
@@ -369,7 +369,7 @@ module "sns_high" {
 }
 
 module "sns_medium" {
-  source      = "../../../modules/sns"
+  source      = "../../modules/sns"
   topic_name  = "sns-medium"
   kms_key_arn = module.main_key.key_arn
   emails      = var.emails
@@ -378,12 +378,12 @@ module "sns_medium" {
 }
 
 module "securityhub" {
-  source                    = "../../../modules/security_hub"
+  source                    = "../../modules/security_hub"
   region                    = null
   enable_default_standards  = true
   auto_enable_controls      = true
   control_finding_generator = "SECURITY_CONTROL"
-  standards                 = [
+  standards = [
     "arn:${local.partition}:securityhub:${local.region}::standards/aws-resource-tagging-standard/v/1.0.0"
   ]
   product_subscriptions = [
@@ -394,7 +394,7 @@ module "securityhub" {
 }
 
 module "config" {
-  source                        = "../../../modules/config"
+  source                        = "../../modules/config"
   config_name                   = "config"
   role_arn                      = module.config_role.role_arn
   all_supported                 = true
@@ -443,7 +443,7 @@ module "config" {
 }
 
 module "config_role" {
-  source               = "../../../modules/iam_role"
+  source               = "../../modules/iam_role"
   role_name            = "config-role"
   description          = "Main IAM role for Config"
   path                 = null
@@ -465,7 +465,7 @@ module "config_role" {
 }
 
 module "ssm_role" {
-  source               = "../../../modules/iam_role"
+  source               = "../../modules/iam_role"
   role_name            = "ssm-role"
   description          = "Main IAM role for SSM"
   path                 = "/"
@@ -492,7 +492,7 @@ module "ssm_role" {
 }
 
 module "ssm_security_group" {
-  source      = "../../../modules/sg"
+  source      = "../../modules/sg"
   sg_name     = "ssm-sg"
   description = "Main Security Group of SSM in ${local.prefix}"
   vpc_id      = null
@@ -506,7 +506,7 @@ module "ssm_security_group" {
 }
 
 module "quarantine_sg" {
-  source      = "../../../modules/sg"
+  source      = "../../modules/sg"
   sg_name     = "quarantine-sg"
   description = "Quarantined SG"
   vpc_id      = null
