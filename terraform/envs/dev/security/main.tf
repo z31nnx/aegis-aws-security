@@ -292,8 +292,8 @@ module "ebs_encryption" {
 
 module "config" {
   source                        = "../../../modules/config"
-  config_role_name              = "config-role"
   config_name                   = "config"
+  role_arn                      = module.config_role.role_arn
   all_supported                 = true
   include_global_resource_types = true
   recording_frequency           = "CONTINUOUS"
@@ -339,10 +339,32 @@ module "config" {
   prefix = local.prefix
 }
 
+module "config_role" {
+  source               = "../../../modules/iam_role"
+  role_name            = "config-role"
+  description          = "Main IAM role for Config"
+  path                 = null
+  max_session_duration = null
+  trust_policy = [
+    {
+      sid     = "Trust"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole"]
+      principals = {
+        type        = "Service"
+        identifiers = ["config.amazonaws.com"]
+      }
+    }
+  ]
+  policy      = []
+  policy_arns = ["arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"]
+  prefix      = local.prefix
+}
+
 module "ssm_role" {
   source               = "../../../modules/iam_role"
   role_name            = "ssm-role"
-  description          = "Main IAM role form SSM"
+  description          = "Main IAM role for SSM"
   path                 = "/"
   max_session_duration = 3600
   trust_policy = [

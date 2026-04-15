@@ -1,23 +1,6 @@
-data "aws_iam_policy_document" "trust" {
-  statement {
-    sid     = "Assume"
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["config.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role" "role" {
-  name               = "${var.prefix}-${var.config_role_name}"
-  assume_role_policy = data.aws_iam_policy_document.trust.json
-}
-
 resource "aws_config_configuration_recorder" "recorder" {
   name     = "${var.prefix}-${var.config_name}"
-  role_arn = aws_iam_role.role.arn
+  role_arn = var.role_arn
 
 
   recording_group {
@@ -29,12 +12,6 @@ resource "aws_config_configuration_recorder" "recorder" {
     recording_frequency = var.recording_frequency
   }
 }
-
-resource "aws_iam_role_policy_attachment" "policy_attachment" {
-  role       = aws_iam_role.role.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"
-}
-
 resource "aws_config_delivery_channel" "delivery" {
   name           = "${var.prefix}-${var.config_name}-delivery-channel"
   s3_bucket_name = var.bucket_name

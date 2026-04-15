@@ -1,14 +1,14 @@
 variable "prefix" {
   type = string
 }
-variable "config_role_name" {
-  type = string
-}
 variable "config_name" {
   type = string
 }
 variable "all_supported" {
   type = bool
+}
+variable "role_arn" {
+  type = string
 }
 variable "include_global_resource_types" {
   type = bool
