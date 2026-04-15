@@ -10,7 +10,7 @@
 An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
 # Overview 
-This project deploys your AWS cloud account with a foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+This project is designed to deploy your AWS cloud account as a central security platform with foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
 Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
 
@@ -19,19 +19,20 @@ Because security is job zero, I wanted to implement what I have learned from my 
 
 # Capabilities / Features
 - **Terraform modules**: Root module + 13 submodules 
-- **Hardened access:** Custom IAM roles for SSM for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. 
+- **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
 - **Centralized logging:** One S3 central logging bucket (BPA on, versioning, SSE-KMS).
-- **KMS encryption:** Single KMS key to keep costs/simple (you can split later per service).
+- **KMS encryption:** Single KMS key to keep costs/simple and easier to rotate.
 - **Lambda real-time response:** 
   - CloudTrail tamper auto-remediation (StopLogging/DeleteTrail/UpdateTrail/PutEventSelectors).
   - SSH/RDP world-open guard for Security Groups (Port 22 & 3389) works for IPv4 and IPv6.
   - GuardDuty CryptoCurrency (Bitcoin mining) findings (e.g. CryptoCurrency:EC2/BitcoinTool.B*). 
 - **Alerts:** Encrypted SNS topics (HIGH / MED) with clear emails.
-- **SQS DLQ**: Added for Lambda failures, failed events can be investigated. 
-- **SecurityHub**: Enabled for centralized monitoring, two foundational standards, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. 
+- **SQS DLQ**: Added for Lambda failures, failed events can be investigated (still updating).
+- **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
   - **CIS AWS Foundations Benchmark v1.4.0**
   - **AWS  Foundational Security Best Practices v1.0.0**
-- **Compliance (AWS Config):** Curated AWS managed rules for a baseline.  Config Auto-remediation with SSM documents is not yet included but its part of the future plans.
+  - **AWS Resource Tagging Standard v1.0.0**
+- **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but its part of the future plans. 
 
 ## Table of Contents 
 - [Terraform Modules](#terraform-modules)
@@ -48,19 +49,19 @@ Because security is job zero, I wanted to implement what I have learned from my 
 
 | Module         | Purpose                                               |
 |----------------|-------------------------------------------------------|
-| `central_logging/` | Central S3 logging bucket with BPA, versioning, SSE-KMS |
+| `s3/` | Reuseable S3 bucket for central logging (SSE-KMS + BPA) |
 | `cloudtrail/`      | Multi-Region CloudTrail with KMS encryption & log validation |
 | `config/`          | AWS Config rules baseline & recorder               |
 | `ebs/`             | Enforces default EBS encryption at account level   |
-| `eventbridge/`     | Event bus & rules for Lambda automation            |
+| `eventbridge/`     | Event rules for Lambda automation            |
 | `guardduty/`       | GuardDuty detector for continuous threat detection |
 | `kms/`             | Central KMS CMK + alias for log/service encryption |
-| `lambda/`          | Remediation Lambdas (tamper, SSH/RDP, crypto mining) |
-| `security_hub/`    | Security Hub enablement + CIS & AFSBP standards    |
+| `lambda/`          | Remediation Lambdas for security automation |
+| `security_hub/`    | Security Hub enablement + CIS + Resource & AFSBP standards    |
 | `sg/`              | Quarantine Security Group for crypto mining              |
 | `sns/`             | Encrypted SNS topics (HIGH / MED alerts)           |
 | `sqs/`             | SQS dead letter queue for failed Lambda events                       |
-| `ssm/`             | IAM role for SSM access        |
+| `iam_role/`             | IAM role for SSM access        |
 
 
 ## AWS Config Rules
