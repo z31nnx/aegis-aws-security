@@ -55,7 +55,6 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | `s3/` | Reuseable S3 bucket for central logging (SSE-KMS + BPA) |
 | `cloudtrail/`      | Multi-Region CloudTrail with KMS encryption & log validation |
 | `config/`          | AWS Config rules baseline & recorder               |
-| `cloudwatch_logs/`          | Central logs for Lambda automations              |
 | `cloudwatch_dashboard/`          | Central dashboard for lambda automations            |
 | `ebs/`             | Enforces default EBS encryption at account level   |
 | `eventbridge/`     | Event rules for Lambda automation            |

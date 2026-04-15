@@ -4,28 +4,53 @@ variable "prefix" {
 variable "function_name" {
   type = string
 }
-variable "description" {
-  type    = string
-  default = null
+variable "filename" {
+  type = string
 }
-variable "role_arn" {
+variable "handler" {
+  type = string
+}
+variable "code_sha256" {
   type = string
 }
 variable "runtime" {
   type = string
 }
-variable "filename" {
-  type = string
-}
-variable "source_code_hash" {
-  type = string
+variable "memory_size" {
+  type    = number
+  default = 256
 }
 variable "timeout" {
-  type = number
+  type    = number
+  default = 30
 }
-variable "memory_size" {
-  type = number
+variable "log_format" {
+  type    = string
+  default = "JSON"
 }
-variable "publish" {
-  type = bool
+variable "deletion_protection_enabled" {
+  type    = bool
+  default = false
+}
+variable "log_group_class" {
+  type    = string
+  default = "STANDARD"
+}
+variable "retention_in_days" {
+  type    = number
+  default = 7
+}
+variable "lambda_environment_variables" {
+  description = "Environment variables"
+  type        = map(string)
+  default     = {}
+}
+variable "extra_statements" {
+  type = list(object({
+    sid       = string
+    effect    = string
+    actions   = list(string)
+    resources = list(string)
+  }))
+  default = []
 }

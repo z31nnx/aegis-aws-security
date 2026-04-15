@@ -548,6 +548,38 @@ module "central_cloudwatch_dashboard" {
     {
       type   = "metric"
       x      = 0
+      y      = 12
+      width  = 12
+      height = 6
+
+      properties = {
+        metrics = [
+          ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_high.topic_name]
+        ]
+        period = 300
+        stat   = "Sum"
+        title  = "SNS Messages Published"
+      }
+    },
+        {
+      type   = "metric"
+      x      = 0
+      y      = 12
+      width  = 12
+      height = 6
+
+      properties = {
+        metrics = [
+          ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_medium.topic_name]
+        ]
+        period = 300
+        stat   = "Sum"
+        title  = "SNS Messages Published"
+      }
+    },
+    {
+      type   = "metric"
+      x      = 0
       y      = 0
       width  = 12
       height = 6
@@ -579,13 +611,3 @@ module "central_cloudwatch_dashboard" {
     }
   ]
 }
-module "central_cloudwatch_log_group" {
-  source                      = "../../modules/cloudwatch_logs"
-  log_group_name              = "central-lambda-log-group"
-  log_group_class             = "STANDARD"
-  deletion_protection_enabled = false # set to true when not testing
-  retention_in_days           = 7
-  kms_key_arn                 = module.main_key.key_arn
-  prefix                      = local.prefix
-}
-
