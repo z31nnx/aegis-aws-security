@@ -20,3 +20,6 @@ variable "main_username" {
 variable "trail_name" {
   type = string
 }
+variable "emails" {
+  type = list(string)
+}

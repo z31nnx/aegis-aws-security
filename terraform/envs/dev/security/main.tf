@@ -128,6 +128,28 @@ module "main_key" {
           values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${local.prefix}-${var.trail_name}"]
         }
       ]
+    },
+    {
+      sid     = "AllowSNSUseOfKey"
+      effect  = "Allow"
+      actions = ["kms:GenerateDataKey*", "kms:Decrypt"]
+      principals = {
+        type        = "Service"
+        identifiers = ["sns.amazonaws.com"]
+      }
+      resources = ["*"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        },
+        {
+          test     = "StringLike"
+          variable = "kms:EncryptionContext:aws:sns:topicArn"
+          values   = ["arn:${local.partition}:sns:${local.region}:${local.account_id}:*"]
+        }
+      ]
     }
   ]
 
@@ -136,7 +158,7 @@ module "main_key" {
 
 module "central-logs-bucket" {
   source        = "../../../modules/s3"
-  bucket_name   = "central-security-logs"
+  bucket_name   = "central-security-logs-test"
   force_destroy = true
   versioning    = "Enabled"
   public_access_block = {
@@ -335,6 +357,24 @@ module "guardduty" {
 module "ebs_encryption" {
   source = "../../../modules/ebs"
   enable = true
+}
+
+module "sns_high" {
+  source      = "../../../modules/sns"
+  topic_name  = "sns-high"
+  kms_key_arn = module.main_key.key_arn
+  emails      = var.emails
+  protocol    = "email"
+  prefix      = local.prefix
+}
+
+module "sns_medium" {
+  source      = "../../../modules/sns"
+  topic_name  = "sns-medium"
+  kms_key_arn = module.main_key.key_arn
+  emails      = var.emails
+  protocol    = "email"
+  prefix      = local.prefix
 }
 
 module "config" {
