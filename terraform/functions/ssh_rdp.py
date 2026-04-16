@@ -12,6 +12,12 @@ logger.setLevel(logging.INFO)
 ec2 = boto3.client("ec2", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
 
+TAG_STATUS_KEY = "Aegis:Status"
+TAG_LASTFIX_KEY = "Aegis:LastFix"
+
+if not SNS_TOPIC_ARN:
+    raise RuntimeError("Required: missing SNS_TOPIC_ARN")
+
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
@@ -125,4 +131,74 @@ def remediate_exposed_sg(security_groups):
         
     return findings
 
-logger.info(remediate_exposed_sg(scan_exposed_sg()))
+def tag_sg(security_group):
+    
+    for sg in security_group:
+        group_id = sg["GroupId"]
+        
+        try:
+            ec2.create_tags(
+                Resources=[group_id],
+                Tags=[
+                {"Key": TAG_STATUS_KEY,  "Value": "Remediated"},
+                {"Key": TAG_LASTFIX_KEY, "Value": now_iso_utc()},
+                ]
+            )
+            return True
+        except ClientError as e:
+            log_client_error(e, "tag_sg")
+            return False
+
+def actor_metadata(detail):
+    ui = detail.get("userIdentity", {})
+    actor = {
+        "type": ui.get("type", "unknown"),
+        "accountId": ui.get("accountId", ""),
+        "arn": ui.get("arn", ""),
+        "userName": ui.get("userName", ""),
+        "principalId": ui.get("principalId", "") 
+    }
+    
+    return actor
+
+def lambda_handler(event, context):
+    logger.info(f"Lambda started!")
+    logger.info(f"Event received: {json.dumps(event)}")
+    logger.info(f"Starting audit...")
+    
+    detail = event.get("detail", {})
+    type = detail.get("eventName", "UnknownEvent")
+    region = detail.get("awsRegion", REGION)
+    actor = actor_metadata(detail)
+    ip = detail.get("sourceIpAddress", "unknown")
+    when = now_iso_utc()
+    
+    exposed = scan_exposed_sg() or []
+    
+    body = {
+            "Status": "NON-COMPLIANT" if exposed else "COMPLIANT",
+            "Time (UTC)": when,
+            "Region": region,
+            "Remediated": False
+        }
+    
+    if exposed:
+        logger.info("Found open SSH/RDP. Initiating remdiation...")
+        remediate = remediate_exposed_sg(exposed)
+        
+        body = {
+            "Status": "NON-COMPLIANT" if exposed else "COMPLIANT",
+            "EventType": type,
+            "Time (UTC)": when,
+            "Region": region,
+            "Actor": actor,
+            "Source Ip": ip,
+            "Remediated": True,
+            "Findings": remediate
+        }
+        
+    return {
+        "statusCode": 200,
+        "body": json.dumps(body)
+    }
+    
