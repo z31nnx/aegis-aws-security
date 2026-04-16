@@ -18,13 +18,16 @@ TAG_LASTFIX_KEY = "Aegis:LastFix"
 if not SNS_TOPIC_ARN:
     raise RuntimeError("Required: missing SNS_TOPIC_ARN")
 
+
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
-    return logger.exception(f"Error caught in {where}: {code} - {msg}")
-    
+    logger.exception(f"Error caught in {where}: {code} - {msg}")
+
+
 def now_iso_utc() -> str:
     return datetime.now(timezone.utc).isoformat()
+
 
 def scan_exposed_sg():
     findings = []
@@ -76,13 +79,14 @@ def scan_exposed_sg():
         
     return findings
 
+
 def remediate_exposed_sg(security_groups):
     findings = []
     
-    try:
-        for sg in security_groups:
-            sg_id = sg["GroupId"]
-            
+    for sg in security_groups:
+        sg_id = sg["GroupId"]
+        
+        try:
             if sg["Ipv4"]:
                 ec2.revoke_security_group_ingress(
                     GroupId=sg_id,
@@ -116,7 +120,7 @@ def remediate_exposed_sg(security_groups):
                         }
                     ]
                 )
-        
+
             findings.append({
                 "Revoked": sg_id,
                 "GroupName": sg["GroupName"],
@@ -126,28 +130,32 @@ def remediate_exposed_sg(security_groups):
                 "Ipv6": sg["Ipv6"]
             })
             
-    except ClientError as e:
-        log_client_error(e, "remediate_exposed_sg")
+        except ClientError as e:
+            log_client_error(e, "remediate_exposed_sg")
         
     return findings
 
-def tag_sg(security_group):
+
+def tag_sg(security_groups):
+    success = True
     
-    for sg in security_group:
+    for sg in security_groups:
         group_id = sg["GroupId"]
         
         try:
             ec2.create_tags(
                 Resources=[group_id],
                 Tags=[
-                {"Key": TAG_STATUS_KEY,  "Value": "Remediated"},
-                {"Key": TAG_LASTFIX_KEY, "Value": now_iso_utc()},
+                    {"Key": TAG_STATUS_KEY, "Value": "Remediated"},
+                    {"Key": TAG_LASTFIX_KEY, "Value": now_iso_utc()},
                 ]
             )
-            return True
         except ClientError as e:
             log_client_error(e, "tag_sg")
-            return False
+            success = False
+            
+    return success
+
 
 def actor_metadata(detail):
     ui = detail.get("userIdentity", {})
@@ -161,44 +169,89 @@ def actor_metadata(detail):
     
     return actor
 
+
+def build_subject():
+    return "[Aegis/Medium] NON-COMPLIANT Security Group(s) Alert"
+
+
+def build_message(region, body):
+    return f"""Exposed SSH/RDP findings found.
+
+Severity: Medium
+Region: {region}
+
+Findings: {body}
+
+Recommended Actions:
+- Review the findings listed above.
+- Validate whether the resource configuration matches security and compliance requirements.
+- Remediate any confirmed issues as soon as possible.
+- Re-run the audit after changes are applied to verify compliance (if needed).
+"""
+
+
+def sns_publish(arn, subject, message):
+    try:
+        sns.publish(
+            TopicArn=arn,
+            Subject=subject,
+            Message=message
+        )
+    except ClientError as e:
+        log_client_error(e, "sns_publish")
+        return
+
+
 def lambda_handler(event, context):
-    logger.info(f"Lambda started!")
+    logger.info("Lambda started!")
     logger.info(f"Event received: {json.dumps(event)}")
-    logger.info(f"Starting audit...")
+    logger.info("Starting audit...")
     
     detail = event.get("detail", {})
-    type = detail.get("eventName", "UnknownEvent")
+    event_type = detail.get("eventName", "UnknownEvent")
     region = detail.get("awsRegion", REGION)
     actor = actor_metadata(detail)
     ip = detail.get("sourceIpAddress", "unknown")
     when = now_iso_utc()
     
     exposed = scan_exposed_sg() or []
-    
+    logger.info(f"Exposed findings found: {len(exposed)}")
+
     body = {
-            "Status": "NON-COMPLIANT" if exposed else "COMPLIANT",
-            "Time (UTC)": when,
-            "Region": region,
-            "Remediated": False
-        }
-    
+        "Status": "NON-COMPLIANT" if exposed else "COMPLIANT",
+        "Time (UTC)": when,
+        "Region": region,
+        "Remediated": False
+    }
+
     if exposed:
-        logger.info("Found open SSH/RDP. Initiating remdiation...")
-        remediate = remediate_exposed_sg(exposed)
-        
-        body = {
-            "Status": "NON-COMPLIANT" if exposed else "COMPLIANT",
-            "EventType": type,
-            "Time (UTC)": when,
-            "Region": region,
+        logger.info("Found open SSH/RDP. Initiating remediation...")
+        remediated = remediate_exposed_sg(exposed)
+        logger.info(f"Remediated findings count: {len(remediated)}")
+
+        tag_success = tag_sg(exposed)
+        logger.info(f"Tagging completed: {tag_success}")
+
+        body.update({
+            "EventType": event_type,
             "Actor": actor,
             "Source Ip": ip,
             "Remediated": True,
-            "Findings": remediate
-        }
-        
+            "Tagged": tag_success,
+            'Total Findings': len(remediated),
+            "Findings": remediated
+        })
+
+    subject = build_subject()
+    message = build_message(region=region, body=json.dumps(body, indent=2))
+
+    sns_publish(
+        arn=SNS_TOPIC_ARN,
+        subject=subject,
+        message=message
+    )
+
     return {
         "statusCode": 200,
         "body": json.dumps(body)
     }
-    
