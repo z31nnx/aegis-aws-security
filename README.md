@@ -30,7 +30,6 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - SSH/RDP world-open guard for Security Groups (Port 22 & 3389) works for IPv4 and IPv6.
   - GuardDuty CryptoCurrency (Bitcoin mining) findings (e.g. CryptoCurrency:EC2/BitcoinTool.B*). 
 - **Alerts:** Encrypted SNS topics (HIGH / MED) with clear emails.
-- **SQS DLQ**: Added for Lambda failures, failed events can be investigated (still updating).
 - **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
   - **CIS AWS Foundations Benchmark v1.4.0**
   - **AWS  Foundational Security Best Practices v1.0.0**
@@ -64,7 +63,6 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | `security_hub/`    | Security Hub enablement + CIS + Resource & AFSBP standards    |
 | `sg/`              | Quarantine Security Group for crypto mining              |
 | `sns/`             | Encrypted SNS topics (HIGH / MED alerts)           |
-| `sqs/`             | SQS dead letter queue for failed Lambda events                       |
 | `iam_role/`             | IAM role for SSM access        |
 
 
@@ -117,7 +115,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 
 | Scenario | How to simulate (safe) | Expected outcome |
 |---|---|---|
-| CloudTrail tamper | Delete/Stop/Update via AWS Console | Lambda re-enables/re-creates trail, goes back to baseline; HIGH SNS alert; DLQ on failure |
+| CloudTrail tamper | Delete/Stop/Update via AWS Console | Lambda re-enables/re-creates trail, goes back to baseline; HIGH SNS alert |
 | SSH open to world | Create SG with `0.0.0.0/0` on port 22 | Lambda removes ingress / quarantines SG; MED SNS alert |
 | RDP open to world | Create SG with `0.0.0.0/0` on port 3389 | Same as above |
 | Crypto mining findings | Go on GuardDuty console and **Generate sample findings** | Lambda fires on GuardDuty CryptoCurrency events via EventBridge service; HIGH SNS alert |
@@ -128,7 +126,6 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 ## Troubleshooting
 - **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
-- **Lambda keeps failing -> DLQ**: Adjust the timeout length if needed especially for CryptoCurrency lambda remediation. Inspect SQS DLQ message for failed automations.
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
 - **Security Hub not enabled**: If for some reason its off,  just enable via console (this is normal, the standards and product subscriptions are still applied). Otherwise config must be enabled in order for Security Hub to work.
 - **Terraform destroy**: Ensure no instances are using the quarantine SG, else the destroy command fails. 
