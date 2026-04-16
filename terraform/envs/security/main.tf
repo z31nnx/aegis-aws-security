@@ -539,7 +539,7 @@ module "quarantine_sg" {
 
 module "test_sg" {
   source      = "../../modules/sg"
-  sg_name     = "test_ssh_rdp"
+  sg_name     = "test-ssh-rdp"
   description = "remediation test"
   ingress = {
     ssh_ipv4 = {
@@ -561,7 +561,7 @@ module "test_sg" {
       ip_protocol = "TCP"
     },
     rdp_ipv6 = {
-      cidr_ipv4   = "::/0"
+      cidr_ipv6   = "::/0"
       from_port   = 3389
       to_port     = 3389
       ip_protocol = "TCP"
