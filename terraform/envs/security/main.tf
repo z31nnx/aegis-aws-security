@@ -537,6 +537,39 @@ module "quarantine_sg" {
   prefix      = local.prefix
 }
 
+module "test_sg" {
+  source      = "../../modules/sg"
+  sg_name     = "test_ssh_rdp"
+  description = "remediation test"
+  ingress = {
+    ssh_ipv4 = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 22
+      to_port     = 22
+      ip_protocol = "TCP"
+    },
+    ssh_ipv6 = {
+      cidr_ipv6   = "::/0"
+      from_port   = 22
+      to_port     = 22
+      ip_protocol = "TCP"
+    },
+    rdp_ipv4 = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 3389
+      to_port     = 3389
+      ip_protocol = "TCP"
+    },
+    rdp_ipv6 = {
+      cidr_ipv4   = "::/0"
+      from_port   = 3389
+      to_port     = 3389
+      ip_protocol = "TCP"
+    }
+  }
+  prefix = local.prefix
+}
+
 module "central_cloudwatch_dashboard" {
   source = "../../modules/cloudwatch_dashboard"
 
@@ -561,7 +594,7 @@ module "central_cloudwatch_dashboard" {
         title  = "SNS Messages Published"
       }
     },
-        {
+    {
       type   = "metric"
       x      = 0
       y      = 12
