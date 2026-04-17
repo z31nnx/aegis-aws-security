@@ -14,7 +14,7 @@ resource "aws_iam_role" "role" {
   assume_role_policy = data.aws_iam_policy_document.trust.json
 
   tags = {
-    Name = "${var.prefix}-${var.schedule_group_name}-eventbridge-role"
+    Name = "${var.prefix}-${var.schedule_group_name}-schedule-role"
   }
 }
 
@@ -43,19 +43,11 @@ resource "aws_iam_role_policy_attachment" "role_policy_attachment" {
   policy_arn = aws_iam_policy.policy.arn
 }
 
-resource "aws_scheduler_schedule_group" "group" {
-  name = "${var.prefix}-${var.schedule_group_name}-group"
-
-  tags = {
-    Name = "${var.prefix}-${var.schedule_group_name}-group"
-  }
-}
-
 resource "aws_scheduler_schedule" "schedule" {
   for_each = var.rules
 
   name                = "${var.prefix}-${each.key}"
-  group_name          = aws_scheduler_schedule_group.group.name
+  group_name          = var.schedule_group_name
   state               = each.value.state
   schedule_expression = each.value.schedule_expression
 

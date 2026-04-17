@@ -577,78 +577,7 @@ module "central_cloudwatch_dashboard" {
   dashboard_name = "central-dashboard"
   region         = var.region
 
-  widgets = [
-    {
-      type   = "metric"
-      x      = 0
-      y      = 12
-      width  = 12
-      height = 6
-
-      properties = {
-        metrics = [
-          ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_high.topic_name]
-        ]
-        period = 300
-        stat   = "Sum"
-        title  = "SNS Messages Published"
-      }
-    },
-    {
-      type   = "metric"
-      x      = 0
-      y      = 12
-      width  = 12
-      height = 6
-
-      properties = {
-        metrics = [
-          ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_medium.topic_name]
-        ]
-        period = 300
-        stat   = "Sum"
-        title  = "SNS Messages Published"
-      }
-    },
-    {
-      type   = "metric"
-      x      = 0
-      y      = 0
-      width  = 12
-      height = 6
-
-      properties = {
-        metrics = [
-          ["AWS/Lambda", "Invocations", "FunctionName", "aegis-remediator"]
-        ]
-        period = 300
-        stat   = "Sum"
-        title  = "Lambda Invocations"
-      }
-    },
-    {
-      type   = "metric"
-      x      = 12
-      y      = 0
-      width  = 12
-      height = 6
-
-      properties = {
-        metrics = [
-          ["AWS/Lambda", "Errors", "FunctionName", "aegis-remediator"]
-        ]
-        period = 300
-        stat   = "Sum"
-        title  = "Lambda Errors"
-      }
-    }
-  ]
-}
-
-module "eventbridge_schedule_group" {
-  source              = "../../modules/eventbridge_schedule_group"
-  schedule_group_name = "schedule-group"
-  prefix              = local.prefix
+  widgets = []
 }
 
 module "ssh_rdp_function" {
@@ -681,3 +610,4 @@ module "ssh_rdp_function" {
   ]
   prefix = local.prefix
 }
+
