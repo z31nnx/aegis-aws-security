@@ -16,15 +16,15 @@ variable "managedby" {
 variable "main_username" {
   type = string
 }
-
+variable "role_arns" {
+  type = list(string)
+}
 variable "trail_name" {
   type = string
 }
-
 variable "sns_emails_medium" {
   type = list(string)
 }
-
 variable "sns_emails_high" {
   type = list(string)
 }

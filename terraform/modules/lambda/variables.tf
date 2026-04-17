@@ -13,6 +13,9 @@ variable "kms_key_arn" {
 variable "sns_topic_arn" {
   type = string
 }
+variable "role_arns" {
+  type = list(string)
+}
 variable "memory_size" {
   type    = number
   default = 256

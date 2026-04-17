@@ -1,0 +1,13 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TrustSourceLambdaRole",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::SOURCE_ACCOUNT_ID:role/ssh_rdp_function-lambda-execution-role"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}

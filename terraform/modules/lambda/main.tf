@@ -38,6 +38,13 @@ resource "aws_iam_role" "role" {
 
 data "aws_iam_policy_document" "policy" {
   statement {
+    sid       = "MultiAccountRemediation"
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole"]
+    resources = var.role_arns
+  }
+
+  statement {
     sid       = "CreateLogGroup"
     effect    = "Allow"
     actions   = ["logs:CreateLogGroup"]
@@ -52,9 +59,9 @@ data "aws_iam_policy_document" "policy" {
   }
 
   statement {
-    sid    = "UseKMSForEncryptedSNS"
-    effect = "Allow"
-    actions = [ "kms:GenerateDataKey*", "kms:Decrypt", "kms:DescribeKey"]
+    sid       = "UseKMSForEncryptedSNS"
+    effect    = "Allow"
+    actions   = ["kms:GenerateDataKey*", "kms:Decrypt", "kms:DescribeKey"]
     resources = [var.kms_key_arn]
   }
   statement {
