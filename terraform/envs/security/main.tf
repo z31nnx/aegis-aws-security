@@ -660,6 +660,23 @@ module "ssh_rdp_function" {
     "REGION" = "us-east-1"
     "SNS_TOPIC_ARN" = module.sns_medium.topic_arn
   }
-  extra_statements = []
+  extra_statements = [
+    {
+      sid = "SNS"
+      effect = "Allow",
+      actions = [ "sns:Publish" ]
+      resources = [ module.sns_medium.topic_arn ]
+    },
+    {
+      sid = "SecurityGroups"
+      effect = "Allow"
+      actions = [        
+        "ec2:DescribeSecurityGroups",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:CreateTags"
+        ]
+        resources = ["*"]
+    }
+  ]
   prefix = local.prefix
 }
