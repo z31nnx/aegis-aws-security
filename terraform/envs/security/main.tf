@@ -385,7 +385,7 @@ module "sns_high" {
   source      = "../../modules/sns"
   topic_name  = "sns-high"
   kms_key_arn = module.main_key.key_arn
-  emails      = var.emails
+  emails      = var.sns_emails_high
   protocol    = "email"
   prefix      = local.prefix
 }
@@ -394,7 +394,7 @@ module "sns_medium" {
   source      = "../../modules/sns"
   topic_name  = "sns-medium"
   kms_key_arn = module.main_key.key_arn
-  emails      = var.emails
+  emails      = var.sns_emails_medium
   protocol    = "email"
   prefix      = local.prefix
 }

@@ -21,6 +21,10 @@ variable "trail_name" {
   type = string
 }
 
-variable "emails" {
+variable "sns_emails_medium" {
+  type = list(string)
+}
+
+variable "sns_emails_high" {
   type = list(string)
 }
