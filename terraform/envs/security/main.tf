@@ -644,3 +644,22 @@ module "central_cloudwatch_dashboard" {
     }
   ]
 }
+
+module "ssh_rdp_function" {
+  source = "../../modules/lambda"
+  function_name = "ssh_rdp_function"
+  runtime = "python3.14"
+  handler = "Zip"
+  memory_size = 256
+  timeout = 30
+  log_format = "JSON"
+  deletion_protection_enabled = false 
+  log_group_class = "STANDARD"
+  retention_in_days = 7
+  lambda_environment_variables = {
+    "REGION" = "us-east-1"
+    "SNS_TOPIC_ARN" = module.sns_medium.topic_arn
+  }
+  extra_statements = []
+  prefix = local.prefix
+}

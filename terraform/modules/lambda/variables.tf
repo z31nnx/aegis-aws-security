@@ -4,13 +4,7 @@ variable "prefix" {
 variable "function_name" {
   type = string
 }
-variable "filename" {
-  type = string
-}
 variable "handler" {
-  type = string
-}
-variable "code_sha256" {
   type = string
 }
 variable "runtime" {
