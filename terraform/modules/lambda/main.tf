@@ -54,11 +54,7 @@ data "aws_iam_policy_document" "policy" {
   statement {
     sid    = "UseKMSForEncryptedSNS"
     effect = "Allow"
-    actions = [
-      "kms:GenerateDataKey*",
-      "kms:Decrypt",
-      "kms:DescribeKey"
-    ]
+    actions = [ "kms:GenerateDataKey*", "kms:Decrypt", "kms:DescribeKey"]
     resources = [var.kms_key_arn]
   }
   statement {

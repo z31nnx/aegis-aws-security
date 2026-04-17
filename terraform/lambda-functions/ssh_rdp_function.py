@@ -16,7 +16,7 @@ TAG_STATUS_KEY = "Aegis:Status"
 TAG_LASTFIX_KEY = "Aegis:LastFix"
 
 if not SNS_TOPIC_ARN:
-    raise RuntimeError(f"Required: missing SNS_TOPIC_ARN.")
+    raise RuntimeError("Required: missing SNS_TOPIC_ARN.")
 
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unkown code")
@@ -159,13 +159,13 @@ def actor_meta(detail):
     attrs = session_context.get("attributes", {})
     
     actor = {
-        "Type": ui.get("type", ""),
-        "Arn": ui.get("arn", ""),
+        "Type": ui.get("type"),
+        "Arn": ui.get("arn"),
         "UserName": ui.get("userName"),
-        "AccountId": ui.get("accountId", ""),
-        "PrincipalId": ui.get("principalId", ""),
-        "CreationDate": attrs.get("creationDate", ""),
-        "MFA": attrs.get("mfaAuthenticated", "")
+        "AccountId": ui.get("accountId"),
+        "PrincipalId": ui.get("principalId"),
+        "CreationDate": attrs.get("creationDate"),
+        "MFA": attrs.get("mfaAuthenticated")
     }
     
     return actor
