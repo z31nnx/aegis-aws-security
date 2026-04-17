@@ -135,7 +135,6 @@ def remediate_exposed_sg(security_groups):
     return findings
 
 def tag_sg(revoked) -> bool:
-    
     for sg in revoked:
         group_id = sg["Revoked"]
         try:
@@ -146,11 +145,12 @@ def tag_sg(revoked) -> bool:
                     {"Key": TAG_LASTFIX_KEY, "Value": f"Aegis:{now_utc_iso()}"}
                 ]
             )
-            return True
-    
+            
         except ClientError as e:
             log_client_error(e, "tag_sg")
             return False
+        
+    return True
     
     
 def actor_meta(detail):
@@ -204,7 +204,7 @@ def lambda_handler(event, context):
     logger.info(f"Event received: {json.dumps(event)}")
     
     detail = event.get("detail", {})
-    event_type = detail.get("eventType", {})
+    event_type = detail.get("eventType")
     actor = actor_meta(detail)
     ip = detail.get("sourceIpAddress")
     when = now_utc_iso()
@@ -213,7 +213,7 @@ def lambda_handler(event, context):
     
     if not exposed:
         return {
-            "statusCode": 500,
+            "statusCode": 200,
             "message": "COMPLIANT"
         }
         

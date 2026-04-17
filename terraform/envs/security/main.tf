@@ -592,7 +592,6 @@ module "ssh_rdp_function" {
   retention_in_days           = 7
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
-  role_arns                   = var.role_arns
   lambda_environment_variables = {
     "REGION"        = "us-east-1"
     "SNS_TOPIC_ARN" = module.sns_medium.topic_arn

@@ -5,7 +5,7 @@
       "Sid": "TrustSourceLambdaRole",
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::SOURCE_ACCOUNT_ID:role/ssh_rdp_function-lambda-execution-role"
+        "AWS": "arn:aws:iam::SOURCE_ACCOUNT_ID:role/YOUR_FUNCTION_EXECUTION_ROLE"
       },
       "Action": "sts:AssumeRole"
     }
