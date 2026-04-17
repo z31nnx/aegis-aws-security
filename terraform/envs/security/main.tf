@@ -645,6 +645,12 @@ module "central_cloudwatch_dashboard" {
   ]
 }
 
+module "eventbridge_schedule_group" {
+  source = "../../modules/eventbridge_schedule_group"
+  schedule_group_name = "schedule-group"
+  prefix = local.prefix
+}
+
 module "ssh_rdp_function" {
   source = "../../modules/lambda"
   function_name = "ssh_rdp_function"
