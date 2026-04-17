@@ -157,7 +157,7 @@ module "main_key" {
       actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
       principals = {
         type        = "Service"
-        identifiers = ["logs.amazonaws.com"]
+        identifiers = ["logs.${local.region}.amazonaws.com"]
       }
       resources = ["*"]
       conditions = [
@@ -646,42 +646,37 @@ module "central_cloudwatch_dashboard" {
 }
 
 module "eventbridge_schedule_group" {
-  source = "../../modules/eventbridge_schedule_group"
+  source              = "../../modules/eventbridge_schedule_group"
   schedule_group_name = "schedule-group"
-  prefix = local.prefix
+  prefix              = local.prefix
 }
 
 module "ssh_rdp_function" {
-  source = "../../modules/lambda"
-  function_name = "ssh_rdp_function"
-  runtime = "python3.14"
-  handler = "Zip"
-  memory_size = 256
-  timeout = 30
-  log_format = "JSON"
-  deletion_protection_enabled = false 
-  log_group_class = "STANDARD"
-  retention_in_days = 7
+  source                      = "../../modules/lambda"
+  function_name               = "ssh_rdp_function"
+  runtime                     = "python3.14"
+  memory_size                 = 256
+  timeout                     = 30
+  log_format                  = "JSON"
+  deletion_protection_enabled = false
+  log_group_class             = "STANDARD"
+  retention_in_days           = 7
+  sns_topic_arn               = module.sns_medium.topic_arn
+  kms_key_arn                 = module.main_key.key_arn
   lambda_environment_variables = {
-    "REGION" = "us-east-1"
+    "REGION"        = "us-east-1"
     "SNS_TOPIC_ARN" = module.sns_medium.topic_arn
   }
   extra_statements = [
     {
-      sid = "SNS"
-      effect = "Allow",
-      actions = [ "sns:Publish" ]
-      resources = [ module.sns_medium.topic_arn ]
-    },
-    {
-      sid = "SecurityGroups"
+      sid    = "SecurityGroups"
       effect = "Allow"
-      actions = [        
+      actions = [
         "ec2:DescribeSecurityGroups",
         "ec2:RevokeSecurityGroupIngress",
         "ec2:CreateTags"
-        ]
-        resources = ["*"]
+      ]
+      resources = ["*"]
     }
   ]
   prefix = local.prefix

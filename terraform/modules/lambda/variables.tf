@@ -4,10 +4,13 @@ variable "prefix" {
 variable "function_name" {
   type = string
 }
-variable "handler" {
+variable "runtime" {
   type = string
 }
-variable "runtime" {
+variable "kms_key_arn" {
+  type = string
+}
+variable "sns_topic_arn" {
   type = string
 }
 variable "memory_size" {

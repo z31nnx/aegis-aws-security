@@ -1,7 +1,7 @@
 data "archive_file" "zip" {
   type        = "zip"
-  source_file = "../../functions/${var.function_name}.py"
-  output_path = "../../functions/.build/${var.function_name}.zip"
+  source_file = "../../lambda-functions/${var.function_name}.py"
+  output_path = "../../lambda-functions/.build/${var.function_name}.zip"
 }
 
 data "aws_iam_policy_document" "assume" {
@@ -45,13 +45,27 @@ data "aws_iam_policy_document" "policy" {
   }
 
   statement {
-    sid    = "WriteLogs"
+    sid       = "WriteLogs"
+    effect    = "Allow"
+    actions   = ["logs:CreateLogStream", "logs:PutLogEvents"]
+    resources = ["${aws_cloudwatch_log_group.log_group.arn}:*"]
+  }
+
+  statement {
+    sid    = "UseKMSForEncryptedSNS"
     effect = "Allow"
     actions = [
-      "logs:CreateLogStream",
-      "logs:PutLogEvents"
+      "kms:GenerateDataKey*",
+      "kms:Decrypt",
+      "kms:DescribeKey"
     ]
-    resources = ["${aws_cloudwatch_log_group.log_group.arn}:*"]
+    resources = [var.kms_key_arn]
+  }
+  statement {
+    sid       = "PublishToAlertsTopic"
+    effect    = "Allow"
+    actions   = ["sns:Publish"]
+    resources = [var.sns_topic_arn]
   }
 
   dynamic "statement" {
@@ -83,7 +97,7 @@ resource "aws_lambda_function" "function" {
   source_code_hash = data.archive_file.zip.output_base64sha256
   function_name    = "${var.prefix}-${var.function_name}"
   role             = aws_iam_role.role.arn
-  handler          = var.handler
+  handler          = "${var.function_name}.lambda_handler"
   runtime          = var.runtime
   timeout          = var.timeout
   memory_size      = var.memory_size
