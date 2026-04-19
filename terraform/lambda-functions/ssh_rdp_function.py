@@ -4,19 +4,33 @@ import json, logging, boto3, os
 
 REGION = os.getenv("REGION", "us-east-1")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
+ROLE_ARNS = json.loads(os.getenv("ROLE_ARNS", "[]"))
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+sts = boto3.client("sts", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
-ec2 = boto3.client("ec2", region_name=REGION)
 
 TAG_STATUS_KEY = "Aegis:Status"
 TAG_LASTFIX_KEY = "Aegis:LastFix"
 
 if not SNS_TOPIC_ARN:
     raise RuntimeError("Required: missing SNS_TOPIC_ARN.")
+
+def assume_role(role_arn: str) -> boto3.Session:
+    assume = sts.assume_role(
+        RoleArn=role_arn,
+        RoleSessionName="AegisAutomation"
+    )["Credentials"]
+    
+    return boto3.Session(
+        aws_access_key_id=assume["AccessKeyId"],
+        aws_secret_access_key=assume["SecretAccessKey"],
+        aws_session_token=assume["SessionToken"],
+        region_name=REGION
+    )
 
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unkown code")
@@ -26,7 +40,7 @@ def log_client_error(e: ClientError, where: str) -> None:
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-def scan_exposed_sg() -> list[dict]:
+def scan_exposed_sg(ec2) -> list[dict]:
     findings = []
     
     try:
@@ -77,7 +91,7 @@ def scan_exposed_sg() -> list[dict]:
         
     return findings
 
-def remediate_exposed_sg(security_groups):
+def remediate_exposed_sg(ec2, security_groups):
     findings = []
     
     try:
@@ -134,7 +148,7 @@ def remediate_exposed_sg(security_groups):
         
     return findings
 
-def tag_sg(revoked) -> bool:
+def tag_sg(ec2, revoked) -> bool:
     for sg in revoked:
         group_id = sg["Revoked"]
         try:
@@ -200,56 +214,78 @@ def publish_sns(arn, subject, message) -> None:
         log_client_error(e, "publish_sns")
 
 def lambda_handler(event, context):
-    logger.info(f"Lambda started!")
+    logger.info("Lambda started!")
     logger.info(f"Event received: {json.dumps(event)}")
-    
+
     detail = event.get("detail", {})
     event_type = detail.get("eventType")
     actor = actor_meta(detail)
     ip = detail.get("sourceIpAddress")
     when = now_utc_iso()
-    
-    exposed = scan_exposed_sg()
-    
-    if not exposed:
-        return {
-            "statusCode": 200,
-            "message": "COMPLIANT"
-        }
-        
-    logger.info(f"Found: {len(exposed)} open security groups.")   
-    logger.info(f"Attempting to remediate...") 
-    
-    remediate = remediate_exposed_sg(exposed)
-    tags = tag_sg(remediate)
-    
+
+    all_results = []
+
+    for role_arn in ROLE_ARNS:
+        try:
+            session = assume_role(role_arn)
+            ec2 = session.client("ec2", region_name=REGION)
+            identity = session.client("sts", region_name=REGION).get_caller_identity()
+            account_id = identity["Account"]
+
+            exposed = scan_exposed_sg(ec2)
+
+            if not exposed:
+                all_results.append({
+                    "RoleArn": role_arn,
+                    "AccountId": account_id,
+                    "Status": "COMPLIANT",
+                    "Findings": []
+                })
+                continue
+
+            logger.info(f"[{account_id}] Found {len(exposed)} open security groups.")
+            logger.info("Attempting to remediate...")
+
+            remediate = remediate_exposed_sg(ec2, exposed)
+            tags = tag_sg(ec2, remediate)
+
+            all_results.append({
+                "RoleArn": role_arn,
+                "AccountId": account_id,
+                "Status": "NON-COMPLIANT",
+                "AddedTags": tags,
+                "Findings": remediate
+            })
+
+        except ClientError as e:
+            log_client_error(e, f"lambda_handler assume/scan for {role_arn}")
+            all_results.append({
+                "RoleArn": role_arn,
+                "Status": "ERROR",
+                "Error": str(e)
+            })
+
     body = {
-        "Status": "NON-COMPLIANT",
         "EventType": event_type,
         "SourceIpAddress": ip,
         "Time (UTC)": when,
         "Actor": actor,
-        "Addedtags": tags,
-        "Findings": remediate
+        "Results": all_results
     }
-    
-    
+
     subject = build_subject()
     message = build_message(
         region=REGION,
         body=json.dumps(body, indent=2)
     )
-    
+
     publish_sns(
         arn=SNS_TOPIC_ARN,
         subject=subject,
         message=message
     )
-    
+
     return {
         "statusCode": 200,
         "body": json.dumps(body)
     }
-    
-    
-    

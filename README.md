@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT" />
   <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
   <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
-  <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.13" />
+  <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.14" />
   <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
 </p>
 

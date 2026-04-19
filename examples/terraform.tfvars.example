@@ -1,0 +1,13 @@
+region      = "us-east-1"
+environment = "security"
+owner       = "you"
+project     = "aegis"
+managedby   = "terraform"
+
+main_username = "your_user"
+role_arns     = ["target_account_arns"]
+
+trail_name    = "central-security-trail"
+
+sns_emails_medium = ["your_email@gmail.com"]
+sns_emails_high   = ["your_email@gmail.com"]

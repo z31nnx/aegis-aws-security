@@ -16,7 +16,7 @@ variable "managedby" {
 variable "main_username" {
   type = string
 }
-variable "role_arns" {
+variable "target_role_arns" {
   type = list(string)
 }
 variable "trail_name" {
