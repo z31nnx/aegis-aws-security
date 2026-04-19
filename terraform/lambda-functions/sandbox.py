@@ -13,6 +13,9 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
+if not SNS_TOPIC_ARN:
+    raise RuntimeError("Requried: missing SNS_TOPIC_ARNS")
+
 TAG_STATUS_KEY = "Aegis:Status"
 TAG_LASTFIX_KEY = "Aegis:LastFix"
 
@@ -175,25 +178,87 @@ def tag_sg(ec2, security_groups) -> bool:
         return False
     
     return True
-            
 
+def actor_meta(detail) -> dict:
+    ui = detail.get("userIdentity")
+    
+    return {
+        "Type": ui.get("type"),
+        "Arn": ui.get("arn"),
+        "AccountId": ui.get("accountId"),
+        "User": ui.get("userName")
+    }
+    
+def build_subject() -> str:
+    return f"[Aegis/Medium] Security Groups Alert"
+
+def build_message(findings) -> str:
+    return f"""Security Groups findings found.
+
+Severity: Medium
+Region: {REGION}
+
+Findings: {findings}
+
+Recommended Actions:
+- View the current findings listed above.
+- Remediate findings ASAP.
+- Validate wether security findings adhere with security compliance.
+- Re-run the audit to match current compliance.
+- Touch grass if needed.
+"""
+
+def publish_sns(arn, subject, message): 
+    try:
+        sns.publish(
+            RoleArn=arn,
+            Subject=subject,
+            Message=message
+        )
+    except ClientError as e:
+        log_client_error(e, "publish_sns")
+            
 def lambda_handler(event, context):
     logger.info("Lambda started!")
     logger.info(f"Event received: {json.dumps(event)}")
     logger.info("Starting audit...")
     
-    exposed = scan_exposed_sg(ec2)
-    remediate = remediate_exposed_sg(ec2, exposed)
-    tagging = tag_sg(ec2, remediate)
+    detail = event.get("detai")
+    event_name = detail.get("eventName")
+    ip = detail.get("sourceIpAddress")
+    when = now_utc_iso()
+    actor = actor_meta(detail)
     
+    body = {
+        "Status": "COMPLIANT" if exposed else "NON-COMPLIANT",
+        "EventName": event_name,
+        "Time (UTC)": when
+    }
     
+    try:
+        source_acc = sts.get_caller_identity()["Account"]
+    except ClientError as e:
+        log_client_error(e, "Failed to retrive source account")
+
+    if exposed:
+        logger.info(f"Found exposed Security Groups in Source Account: {source_acc}")
+        exposed = scan_exposed_sg(ec2)
+        logger.info(f"Remediating source account.")
+        remediate = remediate_exposed_sg(ec2, exposed)
+        tagging = tag_sg(ec2, remediate)
+        logger.info(f"Source account remediation complete.")
+        body.update({
+            "SourceIP": ip,
+            "Actor": actor,
+            "UpdatedTags": tagging,
+            "Findings": remediate
+        })
     
     for role_arn in ROLE_ARNS:
         session = assume_role(role_arn=role_arn, session_name="AegisAutomation")
         account = session.client("sts").get_caller_identity()["Account"]
         logger.info(f"Scanning account: {account}")
     
-        
 lambda_handler(event=None, context=None)
         
         

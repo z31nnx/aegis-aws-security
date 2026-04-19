@@ -180,7 +180,7 @@ module "main_key" {
 
 module "central-logs-bucket" {
   source        = "../../modules/s3"
-  bucket_name   = "central-security-logs-test"
+  bucket_name   = "central-security-logs-testt"
   force_destroy = true
   versioning    = "Enabled"
   public_access_block = {
