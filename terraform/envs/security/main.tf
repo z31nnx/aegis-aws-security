@@ -590,7 +590,7 @@ module "ssh_rdp_function" {
   deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
-  target_role_arns = var.target_role_arns
+  target_role_arns            = var.target_role_arns
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
   lambda_environment_variables = {

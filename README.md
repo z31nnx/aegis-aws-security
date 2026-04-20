@@ -14,13 +14,14 @@
 </p>
 
 # Overview 
-An AWS security foundation with compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
+An AWS security foundation capable of multi-account remediation, compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
-This project is designed to deploy your AWS cloud account as a central security operations platform with foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+This project is designed to be deployed in a central security AWS cloud account and acts as an operations platform with foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
-Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default),  operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
+Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default), operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
 
 # Capabilities / Features
+- **Multi Account Remediation**: Scans target accounts, automatically alerts and remediate reducing MTTR (Mean-Time-To-Response)
 - **Terraform modules**: Root module + 15 submodules 
 - **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
 - **Centralized logging:** One S3 central logging bucket (BPA on, versioning, SSE-KMS).
@@ -32,7 +33,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 - **Alerts:** Encrypted SNS topics (HIGH / MED) with clear emails.
 - **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
   - **CIS AWS Foundations Benchmark v1.4.0**
-  - **AWS  Foundational Security Best Practices v1.0.0**
+  - **AWS Foundational Security Best Practices v1.0.0**
   - **AWS Resource Tagging Standard v1.0.0**
 - **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but its part of the future plans. 
 
@@ -133,8 +134,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - **Terraform destroy**: Ensure no instances are using the quarantine SG, else the destroy command fails. 
 
 ## Limitations & Future Enhancements
-- Currently only single-account setup.
-- Custom VPC but currently there are no workloads being deployed.
+- A Custom VPC but currently there are no workloads being deployed.
 - SCP for CloudTrail (AWS Organization required).
 - Add more remediation Lambdas (S3 public access detection, compromised IAM key, etc.).
 - Config automation via SSM documents. 

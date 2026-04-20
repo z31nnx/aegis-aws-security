@@ -40,13 +40,13 @@ data "aws_iam_policy_document" "policy" {
   dynamic "statement" {
     for_each = length(var.target_role_arns) > 0 ? [1] : []
     content {
-      sid = "MultiAccountRemediation"
-      effect = "Allow"
-      actions = [ "sts:AssumeRole" ]
+      sid       = "MultiAccountRemediation"
+      effect    = "Allow"
+      actions   = ["sts:AssumeRole"]
       resources = var.target_role_arns
     }
   }
-  
+
   statement {
     sid       = "CreateLogGroup"
     effect    = "Allow"
