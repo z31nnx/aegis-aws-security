@@ -180,7 +180,7 @@ module "main_key" {
 
 module "central-logs-bucket" {
   source        = "../../modules/s3"
-  bucket_name   = "central-security-logs-testt"
+  bucket_name   = "central-security-logs-test"
   force_destroy = true
   versioning    = "Enabled"
   public_access_block = {
@@ -590,11 +590,13 @@ module "ssh_rdp_function" {
   deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
+  target_role_arns = var.target_role_arns
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
   lambda_environment_variables = {
-    "REGION"        = "us-east-1"
-    "SNS_TOPIC_ARN" = module.sns_medium.topic_arn
+    "REGION"           = "us-east-1"
+    "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
+    "TARGET_ROLE_ARNS" = jsonencode(var.target_role_arns)
   }
   extra_statements = [
     {

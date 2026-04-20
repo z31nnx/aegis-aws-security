@@ -6,7 +6,7 @@ import json
 import os
 
 REGION = os.getenv("REGION", "us-east-1")
-SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
+SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:718394780433:security-aegis-sns-medium")
 ROLE_ARNS = json.loads(os.getenv("ROLE_ARNS", '[]'))
 
 logger = logging.getLogger(__name__)
@@ -14,14 +14,13 @@ logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
 if not SNS_TOPIC_ARN:
-    raise RuntimeError("Requried: missing SNS_TOPIC_ARNS")
+    raise RuntimeError("Required: missing SNS_TOPIC_ARNS")
 
 TAG_STATUS_KEY = "Aegis:Status"
 TAG_LASTFIX_KEY = "Aegis:LastFix"
 
 sts = boto3.client("sts", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
-ec2 = boto3.client("ec2", region_name=REGION)
 
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
@@ -64,38 +63,37 @@ def scan_exposed_sg(ec2) -> list[dict]:
                     from_port = perm.get("FromPort")
                     to_port = perm.get("ToPort")
                     
-                    for v4 in perm.get("IpRanges", []):
-                        ipv4 = v4["CidrIp"]
-                        
-                    for v6 in perm.get("Ipv6Ranges", []):
-                        ipv6 = v6["CidrIpv6"]
-                        
                     open_to_world = ["0.0.0.0/0", "::/0"]
                     sensitive_ports = [22, 3389]
                     
-                    if ipv4 in open_to_world and protocol == "tcp":
-                        if from_port in sensitive_ports and to_port == from_port:
-                            findings.append({
-                                "GroupId": group_id,
-                                "GroupName": group_name,
-                                "Protocol": protocol,
-                                "FromPort": from_port,
-                                "ToPort": to_port,
-                                "Ipv4": ipv4,
-                                "Ipv6": None
-                            })
-                            
-                    if ipv6 in open_to_world and protocol == "tcp":
-                        if from_port in sensitive_ports and to_port == from_port:
-                            findings.append({
-                                "GroupId": group_id,
-                                "GroupName": group_name,
-                                "Protocol": protocol,
-                                "FromPort": from_port,
-                                "ToPort": to_port,
-                                "Ipv6": ipv6,
-                                "Ipv4": None
-                            })
+                    for v4 in perm.get("IpRanges", []):
+                        ipv4 = v4["CidrIp"]
+                        if ipv4 in open_to_world and protocol == "tcp":
+                            if from_port in sensitive_ports and to_port == from_port:
+                                findings.append({
+                                    "GroupId": group_id,
+                                    "GroupName": group_name,
+                                    "Protocol": protocol,
+                                    "FromPort": from_port,
+                                    "ToPort": to_port,
+                                    "Ipv4": ipv4,
+                                    "Ipv6": None
+                                })
+                        
+                    for v6 in perm.get("Ipv6Ranges", []):
+                        ipv6 = v6["CidrIpv6"]
+                        if ipv6 in open_to_world and protocol == "tcp":
+                            if from_port in sensitive_ports and to_port == from_port:
+                                findings.append({
+                                    "GroupId": group_id,
+                                    "GroupName": group_name,
+                                    "Protocol": protocol,
+                                    "FromPort": from_port,
+                                    "ToPort": to_port,
+                                    "Ipv6": ipv6,
+                                    "Ipv4": None
+                                })
+                    
                     
     except ClientError as e:
         log_client_error(e, "scan_exposed_sg")
@@ -211,7 +209,7 @@ Recommended Actions:
 def publish_sns(arn, subject, message): 
     try:
         sns.publish(
-            RoleArn=arn,
+            TopicArn=arn,
             Subject=subject,
             Message=message
         )
@@ -223,42 +221,65 @@ def lambda_handler(event, context):
     logger.info(f"Event received: {json.dumps(event)}")
     logger.info("Starting audit...")
     
-    detail = event.get("detai")
+    detail = event.get("detail", {})
     event_name = detail.get("eventName")
     ip = detail.get("sourceIpAddress")
     when = now_utc_iso()
     actor = actor_meta(detail)
     
-    body = {
-        "Status": "COMPLIANT" if exposed else "NON-COMPLIANT",
-        "EventName": event_name,
-        "Time (UTC)": when
-    }
+    all_results =[]
     
     try:
         source_acc = sts.get_caller_identity()["Account"]
     except ClientError as e:
         log_client_error(e, "Failed to retrive source account")
-
+    
+    source_ec2 = boto3.client("ec2", region_name=REGION)         
+    exposed = scan_exposed_sg(ec2=source_ec2)
     if exposed:
         logger.info(f"Found exposed Security Groups in Source Account: {source_acc}")
-        exposed = scan_exposed_sg(ec2)
         logger.info(f"Remediating source account.")
-        remediate = remediate_exposed_sg(ec2, exposed)
-        tagging = tag_sg(ec2, remediate)
+        remediate = remediate_exposed_sg(ec2=source_ec2, security_groups=exposed)
+        tagging = tag_sg(ec2=source_ec2, security_groups=remediate)
         logger.info(f"Source account remediation complete.")
-        body.update({
-            "SourceIP": ip,
-            "Actor": actor,
+        
+        all_results.append({
+            "Status": "NON-COMPLIANT",
+            "Account": source_acc,
             "UpdatedTags": tagging,
-            "Findings": remediate
+            "Remediated": remediate
         })
     
-    for role_arn in ROLE_ARNS:
-        session = assume_role(role_arn=role_arn, session_name="AegisAutomation")
-        account = session.client("sts").get_caller_identity()["Account"]
-        logger.info(f"Scanning account: {account}")
+    if ROLE_ARNS:
+        for role_arn in ROLE_ARNS:
+            session = assume_role(role_arn=role_arn, session_name="AegisAutomation")
+            account = session.client("sts").get_caller_identity()["Account"]
+            logger.info(f"Scanning account: {account}")
+        
+    body = {
+        "TIME (UTC)": when,
+        "EventName": event_name,
+        "SourceIP": ip,
+        "Actor": actor,
+        "Results": all_results
+    }
+        
+    subject = build_subject()
+    message = build_message(findings=json.dumps(body, indent=2))
     
+    publish_sns(
+        arn=SNS_TOPIC_ARN,
+        subject=subject,
+        message=message
+    )    
+    
+    logger.info("Alert publish complete.")
+    
+    return {
+        "statusCode": 200,
+        "body": json.dumps(body)
+    }    
+        
 lambda_handler(event=None, context=None)
         
         

@@ -1,45 +1,53 @@
 from botocore.exceptions import ClientError
 from datetime import datetime, timezone
-import json, logging, boto3, os 
+import logging
+import boto3
+import json
+import os
 
 REGION = os.getenv("REGION", "us-east-1")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
-ROLE_ARNS = json.loads(os.getenv("ROLE_ARNS", "[]"))
+TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", '[]'))
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
-sts = boto3.client("sts", region_name=REGION)
-sns = boto3.client("sns", region_name=REGION)
+if not SNS_TOPIC_ARN:
+    raise RuntimeError("Required: missing SNS_TOPIC_ARN")
 
 TAG_STATUS_KEY = "Aegis:Status"
 TAG_LASTFIX_KEY = "Aegis:LastFix"
 
-if not SNS_TOPIC_ARN:
-    raise RuntimeError("Required: missing SNS_TOPIC_ARN.")
-
-def assume_role(role_arn: str) -> boto3.Session:
-    assume = sts.assume_role(
-        RoleArn=role_arn,
-        RoleSessionName="AegisAutomation"
-    )["Credentials"]
-    
-    return boto3.Session(
-        aws_access_key_id=assume["AccessKeyId"],
-        aws_secret_access_key=assume["SecretAccessKey"],
-        aws_session_token=assume["SessionToken"],
-        region_name=REGION
-    )
+sts = boto3.client("sts", region_name=REGION)
+sns = boto3.client("sns", region_name=REGION)
 
 def log_client_error(e: ClientError, where: str) -> None:
-    code = e.response["Error"].get("Code", "Unkown code")
+    code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
     logger.exception(f"Error caught in {where}: {code} - {msg}")
-    
+
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+def assume_role(role_arn: str, session_name: str) -> boto3.Session:
+    try:
+        creds = sts.assume_role(
+            RoleArn=role_arn,
+            RoleSessionName=session_name
+        )["Credentials"]
+        
+        return boto3.Session(
+            aws_access_key_id=creds["AccessKeyId"],
+            aws_secret_access_key=creds["SecretAccessKey"],
+            aws_session_token=creds["SessionToken"],
+            region_name=REGION
+        )
+    
+    except ClientError as e:
+        log_client_error(e, "assume_role")
+        raise
+    
 def scan_exposed_sg(ec2) -> list[dict]:
     findings = []
     
@@ -48,57 +56,57 @@ def scan_exposed_sg(ec2) -> list[dict]:
         for page in paginator.paginate():
             for sg in page.get("SecurityGroups", []):
                 group_id = sg["GroupId"]
-                group_name = sg["GroupName"]
+                group_name = sg.get("GroupName", "unnamed")
                 
                 for perm in sg.get("IpPermissions", []):
                     protocol = perm.get("IpProtocol", "All")
-                    fp = perm.get("FromPort")
-                    tp = perm.get("ToPort")
+                    from_port = perm.get("FromPort")
+                    to_port = perm.get("ToPort")
                     
                     open_to_world = ["0.0.0.0/0", "::/0"]
-                    exposed_ports = [22, 3389]
+                    sensitive_ports = [22, 3389]
                     
-                    for ip in perm.get("IpRanges", []):
-                        ipv4 = ip.get("CidrIp")
+                    for v4 in perm.get("IpRanges", []):
+                        ipv4 = v4["CidrIp"]
                         if ipv4 in open_to_world and protocol == "tcp":
-                            if fp in exposed_ports and tp == fp:
+                            if from_port in sensitive_ports and to_port == from_port:
                                 findings.append({
                                     "GroupId": group_id,
                                     "GroupName": group_name,
                                     "Protocol": protocol,
-                                    "FromPort": fp,
-                                    "ToPort": tp,
+                                    "FromPort": from_port,
+                                    "ToPort": to_port,
                                     "Ipv4": ipv4,
-                                    'Ipv6': None
+                                    "Ipv6": None
                                 })
-                                
-                    for ip6 in perm.get("Ipv6Ranges", []):
-                        ipv6 = ip6.get("CidrIpv6")
+                        
+                    for v6 in perm.get("Ipv6Ranges", []):
+                        ipv6 = v6["CidrIpv6"]
                         if ipv6 in open_to_world and protocol == "tcp":
-                            if fp in exposed_ports and tp == fp:
+                            if from_port in sensitive_ports and to_port == from_port:
                                 findings.append({
                                     "GroupId": group_id,
                                     "GroupName": group_name,
                                     "Protocol": protocol,
-                                    "FromPort": fp,
-                                    "ToPort": tp,
-                                    'Ipv6': ipv6,
+                                    "FromPort": from_port,
+                                    "ToPort": to_port,
+                                    "Ipv6": ipv6,
                                     "Ipv4": None
                                 })
-        
+                    
     except ClientError as e:
         log_client_error(e, "scan_exposed_sg")
         
     return findings
 
-def remediate_exposed_sg(ec2, security_groups):
+def remediate_exposed_sg(ec2, security_groups) -> list[dict]:
     findings = []
     
-    try:
-        for sg in security_groups:
+    for sg in security_groups:
+        try:
+            group_id = sg["GroupId"]
             ipv4 = sg["Ipv4"]
             ipv6 = sg["Ipv6"]
-            group_id = sg["GroupId"]
             
             if ipv4:
                 ec2.revoke_security_group_ingress(
@@ -143,67 +151,68 @@ def remediate_exposed_sg(ec2, security_groups):
                 "Ipv6": sg["Ipv6"]
             })
             
-    except ClientError as e:
-        log_client_error(e, "remediate_exposed_sg")
+        except ClientError as e:
+            log_client_error(e, "remediate_exposed_sg")
         
     return findings
 
-def tag_sg(ec2, revoked) -> bool:
-    for sg in revoked:
-        group_id = sg["Revoked"]
-        try:
-            ec2.create_tags(
-                Resources=[group_id],
-                Tags=[
-                    {"Key": TAG_STATUS_KEY, "Value": "Aegis:Remediated"},
-                    {"Key": TAG_LASTFIX_KEY, "Value": f"Aegis:{now_utc_iso()}"}
-                ]
-            )
+def tags():
+    return [
+        {"Key": TAG_STATUS_KEY, "Value": "remediated"},
+        {"Key": TAG_LASTFIX_KEY, "Value": now_utc_iso()}
+    ]
+
+def tag_sg(ec2, security_groups) -> bool:
+    if not security_groups:
+        return False
+    try:
+        group_ids = [sg["Revoked"] for sg in security_groups]
+        ec2.create_tags(
+            Resources=group_ids,
+            Tags=tags()
+        )
             
-        except ClientError as e:
-            log_client_error(e, "tag_sg")
-            return False
-        
+    except ClientError as e:
+        log_client_error(e, "tag_sg")
+        return False
+    
     return True
+
+def actor_meta(detail) -> dict:
+    ui = detail.get("userIdentity", {}) or {}
     
-    
-def actor_meta(detail):
-    ui = detail.get("userIdentity", {})
-    session_context = ui.get("sessionContext", {})
-    attrs = session_context.get("attributes", {})
-    
-    actor = {
+    return {
         "Type": ui.get("type"),
         "Arn": ui.get("arn"),
-        "UserName": ui.get("userName"),
         "AccountId": ui.get("accountId"),
-        "PrincipalId": ui.get("principalId"),
-        "CreationDate": attrs.get("creationDate"),
-        "MFA": attrs.get("mfaAuthenticated")
+        "User": ui.get("userName")
     }
     
-    return actor
-
 def build_subject() -> str:
     return f"[Aegis/Medium] Security Groups Alert"
 
-def build_message(region, body) -> str:
-    return f"""NON-COMPLIANT findings found.
+def build_message(region, event, time, ip, actor, findings) -> str:
+    return f"""Security Groups findings found.
 
 Severity: Medium
 Region: {region}
+Event: {event}
+Time (UTC): {time}
+Source IP: {ip}
 
-Findings: {body}
+Actor: {actor}
+
+Findings: {findings}
 
 Recommended Actions:
-- Review the findings listed above.
-- Validate wether the info matches with security and compliance requirements.
-- Check security group tags for status and date info.
-- Remediate any known issues as soon as possible.
-- Re-run the audit to match compliance (if needed).
+- View the current findings listed above.
+- Remediate findings ASAP.
+- Validate whether security findings adhere with security compliance.
+- Re-run the audit to match current compliance.
+- Touch grass if needed.
 """
 
-def publish_sns(arn, subject, message) -> None:
+def publish_sns(arn, subject, message): 
     try:
         sns.publish(
             TopicArn=arn,
@@ -212,80 +221,94 @@ def publish_sns(arn, subject, message) -> None:
         )
     except ClientError as e:
         log_client_error(e, "publish_sns")
-
+            
 def lambda_handler(event, context):
     logger.info("Lambda started!")
     logger.info(f"Event received: {json.dumps(event)}")
-
+    logger.info("Starting audit...")
+    
+    event = event or {}
     detail = event.get("detail", {})
-    event_type = detail.get("eventType")
-    actor = actor_meta(detail)
-    ip = detail.get("sourceIpAddress")
+    event_name = detail.get("eventName", "Unknown")
+    ip = detail.get("sourceIpAddress", "Unkown")
     when = now_utc_iso()
+    actor = actor_meta(detail)
+    
+    ec2 = boto3.client("ec2", region_name=REGION)   
+    identity = sts.get_caller_identity()["Account"]
+    
+    all_results =[]      
+    exposed = scan_exposed_sg(ec2=ec2)
+    
+    if exposed:
+        logger.info(f"Found exposed Security Groups in Source Account: {identity}")
+        logger.info(f"Remediating source account.")
+        remediate = remediate_exposed_sg(ec2=ec2, security_groups=exposed)
+        tagging = tag_sg(ec2=ec2, security_groups=remediate)
+        logger.info(f"Source account remediation complete.")
+        
+        all_results.append({
+            "Status": "NON-COMPLIANT",
+            "Account": identity,
+            "UpdatedTags": tagging,
+            "Remediated": remediate
+        })
+    
+    if TARGET_ROLE_ARNS:
+        for role_arn in TARGET_ROLE_ARNS:
+            try:
+                session = assume_role(role_arn=role_arn, session_name="AegisAutomation")
+                target_account = session.client("sts").get_caller_identity()["Account"]
+                logger.info(f"Scanning account: {target_account}")
+                target_ec2 = session.client("ec2", region_name=REGION)
 
-    all_results = []
+                exposed = scan_exposed_sg(ec2=target_ec2)
+                if exposed:
+                    logger.info("Remediating target")
+                    remediate = remediate_exposed_sg(ec2=target_ec2, security_groups=exposed)
+                    tagging = tag_sg(ec2=target_ec2, security_groups=remediate)
 
-    for role_arn in ROLE_ARNS:
-        try:
-            session = assume_role(role_arn)
-            ec2 = session.client("ec2", region_name=REGION)
-            identity = session.client("sts", region_name=REGION).get_caller_identity()
-            account_id = identity["Account"]
+                    all_results.append({
+                        "Status": "NON-COMPLIANT",
+                        "Account": target_account,
+                        "UpdatedTags": tagging,
+                        "Remediated": remediate
+                    })
 
-            exposed = scan_exposed_sg(ec2)
-
-            if not exposed:
+            except ClientError as e:
+                log_client_error(e, f"target_account_processing:{role_arn}")
                 all_results.append({
+                    "Status": "ERROR",
                     "RoleArn": role_arn,
-                    "AccountId": account_id,
-                    "Status": "COMPLIANT",
-                    "Findings": []
+                    "Reason": "AssumeRole or account processing failed"
                 })
                 continue
-
-            logger.info(f"[{account_id}] Found {len(exposed)} open security groups.")
-            logger.info("Attempting to remediate...")
-
-            remediate = remediate_exposed_sg(ec2, exposed)
-            tags = tag_sg(ec2, remediate)
-
-            all_results.append({
-                "RoleArn": role_arn,
-                "AccountId": account_id,
-                "Status": "NON-COMPLIANT",
-                "AddedTags": tags,
-                "Findings": remediate
-            })
-
-        except ClientError as e:
-            log_client_error(e, f"lambda_handler assume/scan for {role_arn}")
-            all_results.append({
-                "RoleArn": role_arn,
-                "Status": "ERROR",
-                "Error": str(e)
-            })
-
+        
     body = {
-        "EventType": event_type,
-        "SourceIpAddress": ip,
-        "Time (UTC)": when,
-        "Actor": actor,
         "Results": all_results
     }
-
+        
     subject = build_subject()
     message = build_message(
         region=REGION,
-        body=json.dumps(body, indent=2)
-    )
-
+        event=event_name,
+        time=when,
+        ip=ip,
+        actor=actor,
+        findings=json.dumps(body, indent=2))
+    
     publish_sns(
         arn=SNS_TOPIC_ARN,
         subject=subject,
         message=message
-    )
-
+    )    
+    
+    logger.info("Alert publish complete.")
+    
     return {
         "statusCode": 200,
         "body": json.dumps(body)
-    }
+    }    
+    
+
+                

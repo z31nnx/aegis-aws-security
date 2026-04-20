@@ -10,6 +10,9 @@ variable "runtime" {
 variable "kms_key_arn" {
   type = string
 }
+variable "target_role_arns" {
+  type = list(string)
+}
 variable "sns_topic_arn" {
   type = string
 }
