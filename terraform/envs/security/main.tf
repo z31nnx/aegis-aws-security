@@ -648,3 +648,21 @@ module "ssh_rdp_function" {
   prefix = local.prefix
 }
 
+module "ssh_rdp_event_rule" {
+  source     = "../../modules/eventbridge_rule"
+  state      = "ENABLED"
+  rule_name  = "ssh-rdp-rule"
+  target_id  = "ToLambda"
+  event_bus_name  = module.event_bus.bus_name
+  target_arn = module.ssh_rdp_function.function_arn
+  event_pattern = jsonencode({
+    source        = ["aws.ec2"]
+    "detail-type" = ["AWS API Call via CloudTrail"]
+    detail = {
+      eventSource = ["ec2.amazonaws.com"]
+      eventName   = ["AuthorizeSecurityGroupIngress", "ModifySecurityGroupRules"]
+    }
+  })
+  prefix = local.prefix
+  depends_on = [ module.event_bus ]
+}

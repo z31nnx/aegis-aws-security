@@ -14,6 +14,4 @@ locals {
 
   bucket_arn = module.central-logs-bucket.bucket_arn
   bucket_id  = module.central-logs-bucket.bucket_id
-
-  event_bus_name = module.event_bus.eventbridge_bus_name
 }

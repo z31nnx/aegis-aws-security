@@ -56,8 +56,8 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | `cloudtrail/`      | Multi-Region CloudTrail with KMS encryption & log validation |
 | `config/`          | AWS Config rules baseline & recorder               |
 | `cloudwatch_dashboard/`          | Central dashboard for lambda automations            |
-| `eventbridge/`     | Event rules for Lambda automation            |
 | `eventbridge_bus/`     | Main event bus for Lambda automation            |
+| `eventbridge_rule/`     | Event rules for Lambda automation            |
 | `eventbridge_schedule/`          | lambda schedules for functions               |
 | `eventbridge_schedule_group/`          | Central Schedule Group for Lambda functions               |
 | `ebs/`             | Enforces default EBS encryption at account level   |
