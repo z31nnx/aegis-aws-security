@@ -172,6 +172,33 @@ module "main_key" {
           values   = [local.account_id]
         }
       ]
+    },
+    {
+      sid     = "AllowEventBridgeBus"
+      effect  = "Allow"
+      actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
+      principals = {
+        type        = "Service"
+        identifiers = ["events.amazonaws.com"]
+      }
+      resources = ["*"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "kms:EncryptionContext:aws:events:event-bus:arn"
+          values   = ["arn:${local.partition}:events:${local.region}:${local.account_id}:event-bus/${local.prefix}-${var.event_bus_name}"]
+        },
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceArn"
+          values   = ["arn:${local.partition}:events:${local.region}:${local.account_id}:event-bus/${local.prefix}-${var.event_bus_name}"]
+        },
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        }
+      ]
     }
   ]
 
@@ -578,6 +605,14 @@ module "central_cloudwatch_dashboard" {
   region         = var.region
 
   widgets = []
+}
+
+module "event_bus" {
+  source         = "../../modules/eventbridge_bus"
+  event_bus_name = var.event_bus_name
+  description    = "Central Aegis Bus for lambda automation"
+  kms_key_arn    = module.main_key.key_arn
+  prefix         = local.prefix
 }
 
 module "ssh_rdp_function" {

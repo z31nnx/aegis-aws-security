@@ -22,6 +22,9 @@ variable "target_role_arns" {
 variable "trail_name" {
   type = string
 }
+variable "event_bus_name" {
+  type = string
+}
 variable "sns_emails_medium" {
   type = list(string)
 }
