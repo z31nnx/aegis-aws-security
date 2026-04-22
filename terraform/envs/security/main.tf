@@ -2,6 +2,11 @@ data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 data "aws_partition" "current" {}
 
+module "ebs_encryption" {
+  source = "../../modules/ebs"
+  enable = true
+}
+
 module "main_key" {
   source                  = "../../modules/kms"
   key_alias               = "central-key"
@@ -402,11 +407,6 @@ module "guardduty" {
   ]
 }
 
-module "ebs_encryption" {
-  source = "../../modules/ebs"
-  enable = true
-}
-
 module "sns_high" {
   source      = "../../modules/sns"
   topic_name  = "sns-high"
@@ -563,16 +563,6 @@ module "quarantine_sg" {
   prefix      = local.prefix
 }
 
-module "central_cloudwatch_dashboard" {
-  source = "../../modules/cloudwatch_dashboard"
-
-  prefix         = local.prefix
-  dashboard_name = "central-dashboard"
-  region         = var.region
-
-  widgets = []
-}
-
 module "event_bus" {
   source         = "../../modules/eventbridge_bus"
   event_bus_name = var.event_bus_name
@@ -636,4 +626,204 @@ module "ssh_rdp_event_rule" {
       eventName   = ["AuthorizeSecurityGroupIngress", "ModifySecurityGroupRules"]
     }
   })
+}
+
+module "central_cloudwatch_dashboard" {
+  source         = "../../modules/cloudwatch_dashboard"
+  prefix         = local.prefix
+  dashboard_name = "central-dashboard"
+  region         = var.region
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 18
+        height = 9
+        properties = {
+          title  = "Lambda Automation Overview"
+          view   = "timeSeries"
+          period = 300
+          region = var.region
+          stat   = "Sum"
+          metrics = [
+            ["AWS/Lambda", "Invocations", "FunctionName", module.ssh_rdp_function.function_name],
+            [".", "Errors", ".", "."],
+            [".", "Throttles", ".", "."]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 0
+        width  = 6
+        height = 2
+        properties = {
+          title                = "Lambda Errors"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/Lambda", "Errors", "FunctionName", module.ssh_rdp_function.function_name]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 2
+        width  = 6
+        height = 2
+        properties = {
+          title                = "Lambda Throttles"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/Lambda", "Throttles", "FunctionName", module.ssh_rdp_function.function_name]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 4
+        width  = 6
+        height = 4
+        properties = {
+          title  = "Lambda Duration vs Timeout"
+          view   = "gauge"
+          region = var.region
+          stat   = "Maximum"
+          period = 300
+          metrics = [
+            ["AWS/Lambda", "Duration", "FunctionName", module.ssh_rdp_function.function_name]
+          ]
+          yAxis = {
+            left = {
+              min = 0
+              max = 60000
+            }
+          }
+          annotations = {
+            horizontal = [
+              {
+                value = 45000
+                label = "Warning"
+              },
+              {
+                value = 60000
+                label = "Timeout"
+              }
+            ]
+          }
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 8
+        width  = 18
+        height = 6
+        properties = {
+          title  = "SNS Alerts Overview"
+          view   = "timeSeries"
+          period = 300
+          region = var.region
+          stat   = "Sum"
+          metrics = [
+            ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_medium.topic_name],
+            [".", "NumberOfNotificationsDelivered", ".", "."],
+            [".", "NumberOfNotificationsFailed", ".", "."]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 8
+        width  = 6
+        height = 3
+        properties = {
+          title                = "SNS Delivered"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/SNS", "NumberOfNotificationsDelivered", "TopicName", module.sns_medium.topic_name]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 11
+        width  = 6
+        height = 3
+        properties = {
+          title                = "SNS Failed"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/SNS", "NumberOfNotificationsFailed", "TopicName", module.sns_medium.topic_name]
+          ]
+        }
+      }
+    ]
+  })
+}
+
+module "test_sg" {
+  source  = "../../modules/sg"
+  prefix  = local.prefix
+  sg_name = "test-ssh-rdp"
+  ingress = {
+    "ssh_ipv4" = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 22
+      to_port     = 22
+      ip_protocol = "tcp"
+    },
+    "ssh_ipv6" = {
+      cidr_ipv6   = "::/0"
+      from_port   = 22
+      to_port     = 22
+      ip_protocol = "tcp"
+    },
+    "rdp_ipv4" = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 3389
+      to_port     = 3389
+      ip_protocol = "tcp"
+    }
+    "rdp_ipv6" = {
+      cidr_ipv6   = "::/0"
+      from_port   = 3389
+      to_port     = 3389
+      ip_protocol = "tcp"
+    }
+  }
+  egress = {
+    "Allow_all" = {
+      ip_protocol = "-1"
+      cidr_ipv4   = "0.0.0.0/0"
+    }
+  }
+
 }
