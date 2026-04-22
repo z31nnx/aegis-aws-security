@@ -1,4 +1,4 @@
-# Aegis — AWS Security Baseline & Auto-Remediation
+# Aegis — Centralized AWS Security Baseline & Auto-Remediation
 
 <p align="center">
   <img src="./docs/diagrams/aegis-diagram-1.png" alt="Aegis architecture diagram" width="100%" />
@@ -10,25 +10,27 @@
   <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
   <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
   <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.14" />
+  <img src="https://img.shields.io/badge/Framework-NIST--CSF-crimson.svg" alt="NIST-CSF" />
+  <img src="https://img.shields.io/badge/Framework-MITRE--ATT&CK-crimson.svg" alt="MITRE" />
   <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
 </p>
 
 # Overview 
-An AWS security foundation capable of multi-account remediation, compliance (**AWS Config**), centralized logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
+A centralized AWS security foundation capable of multi-account alert and response, compliance (**AWS Config**), logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
-This project is designed to be deployed in a central security AWS cloud account and acts as an operations platform with foundational security spine baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+This project is designed to be deployed in a central security AWS cloud account and acts as a security operations platform with foundational security services baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for near real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
-Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default), operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera**.
+Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default), operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera** and as a side with the adversary **MITRE ATT&CK Framework**.
 
 # Capabilities / Features
-- **Multi Account Remediation**: Scans target accounts, automatically alerts and remediate reducing MTTR (Mean-Time-To-Response)
+- **Multi Account Remediation**: Scans source and target accounts, automatically remediate and notifies you reducing MTTR (Mean-Time-To-Response)
 - **Terraform modules**: Root module + 15 submodules 
 - **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
-- **Centralized logging:** One S3 central logging bucket (BPA on, versioning, SSE-KMS).
+- **Centralized logging:** One S3 central logging bucket (BPA on, prefixes, versioning, SSE-KMS).
 - **KMS encryption:** Single KMS key to keep costs/simple and easier to rotate.
 - **Lambda real-time response:** 
   - CloudTrail tamper auto-remediation (StopLogging/DeleteTrail/UpdateTrail/PutEventSelectors).
-  - SSH/RDP world-open guard for Security Groups (Port 22 & 3389) works for IPv4 and IPv6.
+  - SSH/RDP world-open guard for Security Groups (Port 22 & 3389) works for IPv4 `0.0.0.0/0` and IPv6 `::/0`.
   - GuardDuty CryptoCurrency (Bitcoin mining) findings (e.g. CryptoCurrency:EC2/BitcoinTool.B*). 
 - **Alerts:** Encrypted SNS topics (HIGH / MED) with clear emails.
 - **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
@@ -92,7 +94,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 
 # Implementation Details
 ```bash
-# Open your CLI terminal (Linux, Windows Powershell, etc.)
+# Open your CLI terminal (CMD, Linux, Windows Powershell, etc.)
 # To start, clone the repo then follow the steps under.
 
 git clone https://github.com/z31nnx/aegis-aws-security.git
@@ -106,12 +108,15 @@ cd ./aegis-aws-security/terraform/envs/dev
 # Initialize
 terraform init
 
+# Validate configuration
+terraform validate
+
 # Plan & apply with your tfvars
-terraform plan  -var-file="dev.tfvars"
-terraform apply -var-file="dev.tfvars"
+terraform plan 
+terraform apply 
 
 # When you want to nuke/destroy everything:
-terraform destroy -var-file="dev.tfvars"
+terraform destroy
 ```
 
 # Validation & Testing
@@ -120,15 +125,16 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 | Scenario | How to simulate (safe) | Expected outcome |
 |---|---|---|
 | CloudTrail tamper | Delete/Stop/Update via AWS Console | Lambda re-enables/re-creates trail, goes back to baseline; HIGH SNS alert |
-| SSH open to world | Create SG with `0.0.0.0/0` on port 22 | Lambda removes ingress / quarantines SG; MED SNS alert |
-| RDP open to world | Create SG with `0.0.0.0/0` on port 3389 | Same as above |
-| Crypto mining findings | Go on GuardDuty console and **Generate sample findings** | Lambda fires on GuardDuty CryptoCurrency events via EventBridge service; HIGH SNS alert |
+| SSH open to world | Create SG with `0.0.0.0/0` or `::/0` on port 22 | Lambda removes ingress / quarantines SG; MED SNS alert |
+| RDP open to world | Create SG with `0.0.0.0/0` or `::/0` on port 3389 | Same as above |
+| Crypto mining findings | Go on GuardDuty console and **Generate sample findings** or custom test event for lambda | Lambda fires on GuardDuty CryptoCurrency events via EventBridge service; HIGH SNS alert |
 
 ## Runbook
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
 
 ## Troubleshooting
-- **Terraform apply**: If you can't `terraform apply -var-file="dev.tfvars"`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
+- **Terraform apply**: If you can't `terraform apply`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/security** folder.
+- **Multi-account**: Target accounts must have an **IAM role** that allows **lambda execution role** to assume that role with the necessary permission to remediate. **Default or custom event bus** in the target account should have rules that forward findings to the source (Aegis central security) event bus. Source account's event bus requires a resource based policy, that policy should allow the action of `"events:PutEvents"` from target account to source account's event bus. See permission -> [examples](./examples/) 
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
 - **Security Hub not enabled**: If for some reason its off,  just enable via console (this is normal, the standards and product subscriptions are still applied). Otherwise config must be enabled in order for Security Hub to work.
@@ -142,7 +148,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - Custom Aegis event bus for layered architecture instead of just invoking lambda. 
 
 ## Costs & Environments
-- **Small prod account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
+- **Small security account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
 - Please I highly recommend reviewing [AWS Pricing Calculator](https://calculator.aws/#/) for your use case. 
 
 ## License
