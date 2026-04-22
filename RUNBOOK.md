@@ -78,14 +78,15 @@ What happens when there's a threat.
   4. Analyze evidence: `/var/log/`, SSH keys, new users, etc.  
   5. Preserve -> tag snapshot & document IDs/timeline.  
   6. Rebuild ->  clean/hardened patched AMI 
+  7. Destroy if needed
 
 ## 6. Recover 
 Getting back to a steady state.
 
-- **Terraform Baseline:** Run `terraform apply -var-file="file.tfvars"` to restore any missing baseline resources.  
+- **Terraform Baseline:** Run `terraform apply` to restore any missing baseline resources.  
 - **Credential Rotation:** Rotate IAM roles if compromise is suspected.  
 - **Cleanup:** Remove unused EBS snapshots, delete/terminate compromised EC2 instances.  
 - **GuardDuty**: Confirm findings = 0 active.  
 - **Config**: Confirm Config compliance score ≥ 95%. 
-- **CloudTrail**: Confirm CloudTrail multi-region trail is ENABLED.   
+- **CloudTrail**: Confirm CloudTrail multi-region trail and logging are ENABLED.   
 - **Lessons Learned:** Document incident details and update Terraform modules or Lambda logic to cover any uncovered gaps.  
