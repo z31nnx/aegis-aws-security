@@ -54,3 +54,12 @@ variable "extra_statements" {
   }))
   default = []
 }
+variable "trigger" {
+  type = object({
+    statement_id = string
+    action       = string
+    principal    = string
+    source_arn   = optional(string)
+  })
+  default = null
+}

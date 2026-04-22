@@ -207,7 +207,7 @@ module "main_key" {
 
 module "central-logs-bucket" {
   source        = "../../modules/s3"
-  bucket_name   = "central-security-logs-test"
+  bucket_name   = "central-security-logs"
   force_destroy = true
   versioning    = "Enabled"
   public_access_block = {
@@ -628,6 +628,12 @@ module "ssh_rdp_function" {
   target_role_arns            = var.target_role_arns
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
+  trigger = {
+    statement_id = "AllowExecutionFromEventBridge"
+    action       = "lambda:InvokeFunction"
+    principal    = "events.amazonaws.com"
+    source_arn   = module.ssh_rdp_event_rule.rule_arn
+  }
   lambda_environment_variables = {
     "REGION"           = "us-east-1"
     "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
@@ -649,12 +655,12 @@ module "ssh_rdp_function" {
 }
 
 module "ssh_rdp_event_rule" {
-  source     = "../../modules/eventbridge_rule"
-  state      = "ENABLED"
-  rule_name  = "ssh-rdp-rule"
-  target_id  = "ToLambda"
-  event_bus_name  = module.event_bus.bus_name
-  target_arn = module.ssh_rdp_function.function_arn
+  source         = "../../modules/eventbridge_rule"
+  state          = "ENABLED"
+  rule_name      = "ssh-rdp-rule"
+  target_id      = "ToLambda"
+  event_bus_name = null
+  target_arn     = module.ssh_rdp_function.function_arn
   event_pattern = jsonencode({
     source        = ["aws.ec2"]
     "detail-type" = ["AWS API Call via CloudTrail"]
@@ -663,6 +669,5 @@ module "ssh_rdp_event_rule" {
       eventName   = ["AuthorizeSecurityGroupIngress", "ModifySecurityGroupRules"]
     }
   })
-  prefix = local.prefix
-  depends_on = [ module.event_bus ]
+  prefix     = local.prefix
 }

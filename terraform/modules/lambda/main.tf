@@ -118,3 +118,12 @@ resource "aws_lambda_function" "function" {
     variables = var.lambda_environment_variables
   }
 }
+
+resource "aws_lambda_permission" "trigger" {
+  count         = var.trigger != null ? 1 : 0
+  statement_id  = var.trigger.statement_id
+  action        = var.trigger.action
+  function_name = aws_lambda_function.function.function_name
+  principal     = var.trigger.principal
+  source_arn    = try(var.trigger.source_arn, null)
+}

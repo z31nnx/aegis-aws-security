@@ -10,6 +10,7 @@ variable "description" {
 }
 variable "event_bus_name" {
   type = string
+  default = null
 }
 variable "state" {
   type = string
