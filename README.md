@@ -146,6 +146,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - Add more remediation Lambdas (S3 public access detection, compromised IAM key, etc.).
 - Config automation via SSM documents. 
 - Custom Aegis event bus for layered architecture instead of just invoking lambda. 
+- Multi-region: Currently only works on region at a time. With plans to make multi someday. 
 
 ## Costs & Environments
 - **Small security account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 

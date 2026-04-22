@@ -409,7 +409,7 @@ module "guardduty" {
 
 module "sns_high" {
   source      = "../../modules/sns"
-  topic_name  = "sns-high"
+  topic_name  = "high-alerts"
   kms_key_arn = module.main_key.key_arn
   emails      = var.sns_emails_high
   protocol    = "email"
@@ -418,9 +418,18 @@ module "sns_high" {
 
 module "sns_medium" {
   source      = "../../modules/sns"
-  topic_name  = "sns-medium"
+  topic_name  = "medium-alerts"
   kms_key_arn = module.main_key.key_arn
   emails      = var.sns_emails_medium
+  protocol    = "email"
+  prefix      = local.prefix
+}
+
+module "sns_critical" {
+  source      = "../../modules/sns"
+  topic_name  = "critical-alerts"
+  kms_key_arn = module.main_key.key_arn
+  emails      = var.sns_emails_critical
   protocol    = "email"
   prefix      = local.prefix
 }

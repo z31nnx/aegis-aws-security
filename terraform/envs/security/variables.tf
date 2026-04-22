@@ -31,3 +31,6 @@ variable "sns_emails_medium" {
 variable "sns_emails_high" {
   type = list(string)
 }
+variable "sns_emails_critical" {
+  type = list(string)
+}
