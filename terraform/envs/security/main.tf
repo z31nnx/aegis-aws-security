@@ -540,7 +540,7 @@ module "ssm_role" {
   prefix = local.prefix
 }
 
-module "ssm_security_group" {
+module "ssm_sg" {
   source      = "../../modules/sg"
   sg_name     = "ssm-sg"
   description = "Main Security Group of SSM in ${local.prefix}"
@@ -562,39 +562,6 @@ module "quarantine_sg" {
   ingress     = {}
   egress      = {}
   prefix      = local.prefix
-}
-
-module "test_sg" {
-  source      = "../../modules/sg"
-  sg_name     = "test-ssh-rdp"
-  description = "remediation test"
-  ingress = {
-    ssh_ipv4 = {
-      cidr_ipv4   = "0.0.0.0/0"
-      from_port   = 22
-      to_port     = 22
-      ip_protocol = "TCP"
-    },
-    ssh_ipv6 = {
-      cidr_ipv6   = "::/0"
-      from_port   = 22
-      to_port     = 22
-      ip_protocol = "TCP"
-    },
-    rdp_ipv4 = {
-      cidr_ipv4   = "0.0.0.0/0"
-      from_port   = 3389
-      to_port     = 3389
-      ip_protocol = "TCP"
-    },
-    rdp_ipv6 = {
-      cidr_ipv6   = "::/0"
-      from_port   = 3389
-      to_port     = 3389
-      ip_protocol = "TCP"
-    }
-  }
-  prefix = local.prefix
 }
 
 module "central_cloudwatch_dashboard" {

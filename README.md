@@ -139,6 +139,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - SCP for CloudTrail (AWS Organization required).
 - Add more remediation Lambdas (S3 public access detection, compromised IAM key, etc.).
 - Config automation via SSM documents. 
+- Custom Aegis event bus for layered architecture instead of just invoking lambda. 
 
 ## Costs & Environments
 - **Small prod account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
