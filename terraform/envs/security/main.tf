@@ -9,6 +9,7 @@ module "main_key" {
   deletion_window_in_days = 30
   enable_key_rotation     = true
   prevent_destroy         = false
+  prefix                  = local.prefix
 
   key_policy = [
     {
@@ -201,8 +202,6 @@ module "main_key" {
       ]
     }
   ]
-
-  prefix = local.prefix
 }
 
 module "central-logs-bucket" {
@@ -210,6 +209,7 @@ module "central-logs-bucket" {
   bucket_name   = "central-security-logs"
   force_destroy = true
   versioning    = "Enabled"
+  prefix        = local.prefix
   public_access_block = {
     block_public_acls       = true
     block_public_policy     = true
@@ -336,7 +336,6 @@ module "central-logs-bucket" {
       ]
     }
   ]
-  prefix = local.prefix
 }
 
 module "main_trail" {
@@ -451,6 +450,7 @@ module "config" {
   recording_frequency           = "CONTINUOUS"
   bucket_name                   = module.central-logs-bucket.bucket
   s3_prefix                     = "config"
+  prefix                        = local.prefix
   rules = [
     {
       owner             = "AWS"
@@ -488,7 +488,6 @@ module "config" {
       source_identifier = "IAM_USER_MFA_ENABLED"
     }
   ]
-  prefix = local.prefix
 }
 
 module "config_role" {
@@ -497,6 +496,9 @@ module "config_role" {
   description          = "Main IAM role for Config"
   path                 = null
   max_session_duration = null
+  prefix               = local.prefix
+  policy               = []
+  policy_arns          = ["arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"]
   trust_policy = [
     {
       sid     = "Trust"
@@ -508,9 +510,6 @@ module "config_role" {
       }
     }
   ]
-  policy      = []
-  policy_arns = ["arn:aws:iam::aws:policy/service-role/AWS_ConfigRole"]
-  prefix      = local.prefix
 }
 
 module "ssm_role" {
@@ -519,6 +518,12 @@ module "ssm_role" {
   description          = "Main IAM role for SSM"
   path                 = "/"
   max_session_duration = 3600
+  prefix               = local.prefix
+  policy               = []
+  policy_arns = [
+    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  ]
   trust_policy = [
     {
       sid     = "Trust"
@@ -532,12 +537,6 @@ module "ssm_role" {
       conditions = []
     }
   ]
-  policy = []
-  policy_arns = [
-    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore",
-    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-  ]
-  prefix = local.prefix
 }
 
 module "ssm_sg" {
@@ -545,13 +544,13 @@ module "ssm_sg" {
   sg_name     = "ssm-sg"
   description = "Main Security Group of SSM in ${local.prefix}"
   vpc_id      = null
+  prefix      = local.prefix
   egress = {
     "allow_all" = {
       cidr_ipv4   = "0.0.0.0/0"
       ip_protocol = "-1"
     }
   }
-  prefix = local.prefix
 }
 
 module "quarantine_sg" {
@@ -595,6 +594,7 @@ module "ssh_rdp_function" {
   target_role_arns            = var.target_role_arns
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
+  prefix                      = local.prefix
   trigger = {
     statement_id = "AllowExecutionFromEventBridge"
     action       = "lambda:InvokeFunction"
@@ -602,7 +602,7 @@ module "ssh_rdp_function" {
     source_arn   = module.ssh_rdp_event_rule.rule_arn
   }
   lambda_environment_variables = {
-    "REGION"           = "us-east-1"
+    "REGION"           = var.region
     "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
     "TARGET_ROLE_ARNS" = jsonencode(var.target_role_arns)
   }
@@ -618,7 +618,6 @@ module "ssh_rdp_function" {
       resources = ["*"]
     }
   ]
-  prefix = local.prefix
 }
 
 module "ssh_rdp_event_rule" {
@@ -628,6 +627,7 @@ module "ssh_rdp_event_rule" {
   target_id      = "ToLambda"
   event_bus_name = null
   target_arn     = module.ssh_rdp_function.function_arn
+  prefix         = local.prefix
   event_pattern = jsonencode({
     source        = ["aws.ec2"]
     "detail-type" = ["AWS API Call via CloudTrail"]
@@ -636,5 +636,4 @@ module "ssh_rdp_event_rule" {
       eventName   = ["AuthorizeSecurityGroupIngress", "ModifySecurityGroupRules"]
     }
   })
-  prefix     = local.prefix
 }
