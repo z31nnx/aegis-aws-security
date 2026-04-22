@@ -1,7 +1,7 @@
 name: Terraform-CI
 on:
   pull_request:
-    branches: [ "main", "security" ]
+    branches: [ "main", "security", "feature/aegis-v2" ]
     paths:
       - '**/*.tf'
       - '.tflint.hcl'
@@ -10,7 +10,7 @@ on:
       - 'modules/**'
       - 'terraform/**'
   push:
-    branches: [ "main", "security" ]
+    branches: [ "main", "security", "feature/aegis-v2" ]
     paths:
       - '**/*.tf'
       - '.tflint.hcl'
