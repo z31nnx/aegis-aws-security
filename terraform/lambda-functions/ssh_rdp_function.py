@@ -235,21 +235,21 @@ def lambda_handler(event, context):
     actor = actor_meta(detail)
     
     ec2 = boto3.client("ec2", region_name=REGION)   
-    identity = sts.get_caller_identity()["Account"]
+    source_account = sts.get_caller_identity()["Account"]
     
-    all_results =[]      
+    results =[]      
     exposed = scan_exposed_sg(ec2=ec2)
     
     if exposed:
-        logger.info(f"Found exposed Security Groups in Source Account: {identity}")
+        logger.info(f"Found exposed Security Groups in Source Account: {source_account}")
         logger.info(f"Remediating source account.")
         remediate = remediate_exposed_sg(ec2=ec2, security_groups=exposed)
         tagging = tag_sg(ec2=ec2, security_groups=remediate)
         logger.info(f"Source account remediation complete.")
         
-        all_results.append({
+        results.append({
             "Status": "NON-COMPLIANT",
-            "Account": identity,
+            "Account": source_account,
             "UpdatedTags": tagging,
             "Remediated": remediate
         })
@@ -268,7 +268,7 @@ def lambda_handler(event, context):
                     remediate = remediate_exposed_sg(ec2=target_ec2, security_groups=exposed)
                     tagging = tag_sg(ec2=target_ec2, security_groups=remediate)
 
-                    all_results.append({
+                    results.append({
                         "Status": "NON-COMPLIANT",
                         "Account": target_account,
                         "UpdatedTags": tagging,
@@ -277,7 +277,7 @@ def lambda_handler(event, context):
 
             except ClientError as e:
                 log_client_error(e, f"target_account_processing:{role_arn}")
-                all_results.append({
+                results.append({
                     "Status": "ERROR",
                     "RoleArn": role_arn,
                     "Reason": "AssumeRole or account processing failed"
@@ -285,7 +285,7 @@ def lambda_handler(event, context):
                 continue
         
     body = {
-        "Results": all_results
+        "Results": results
     }
         
     subject = build_subject()

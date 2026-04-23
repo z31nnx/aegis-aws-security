@@ -16,7 +16,7 @@
 </p>
 
 # Overview 
-A centralized AWS security foundation capable of multi-account alert and response, compliance (**AWS Config**), logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
+A centralized AWS security foundation capable of multi-account detection and response, compliance (**AWS Config**), logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
 This project is designed to be deployed in a central security AWS cloud account and acts as a security operations platform with foundational security services baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for near real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
@@ -32,7 +32,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - CloudTrail tamper auto-remediation (StopLogging/DeleteTrail/UpdateTrail/PutEventSelectors).
   - SSH/RDP world-open guard for Security Groups (Port 22 & 3389) works for IPv4 `0.0.0.0/0` and IPv6 `::/0`.
   - GuardDuty CryptoCurrency (Bitcoin mining) findings (e.g. CryptoCurrency:EC2/BitcoinTool.B*). 
-- **Alerts:** Encrypted SNS topics (HIGH / MED) with clear emails.
+- **Alerts:** Encrypted SNS topics ( CRITICAL/ HIGH / MED) with clear emails.
 - **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
   - **CIS AWS Foundations Benchmark v1.4.0**
   - **AWS Foundational Security Best Practices v1.0.0**

@@ -585,7 +585,7 @@ module "ssh_rdp_function" {
   function_name               = "ssh_rdp_function"
   runtime                     = "python3.14"
   memory_size                 = 256
-  timeout                     = 30
+  timeout                     = 60
   log_format                  = "JSON"
   deletion_protection_enabled = false
   log_group_class             = "STANDARD"
@@ -594,16 +594,16 @@ module "ssh_rdp_function" {
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
   prefix                      = local.prefix
+  lambda_environment_variables = {
+    "REGION"           = var.region
+    "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
+    "TARGET_ROLE_ARNS" = jsonencode(var.target_role_arns)
+  }
   trigger = {
     statement_id = "AllowExecutionFromEventBridge"
     action       = "lambda:InvokeFunction"
     principal    = "events.amazonaws.com"
     source_arn   = module.ssh_rdp_event_rule.rule_arn
-  }
-  lambda_environment_variables = {
-    "REGION"           = var.region
-    "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
-    "TARGET_ROLE_ARNS" = jsonencode(var.target_role_arns)
   }
   extra_statements = [
     {
@@ -635,6 +635,57 @@ module "ssh_rdp_event_rule" {
       eventName   = ["AuthorizeSecurityGroupIngress", "ModifySecurityGroupRules"]
     }
   })
+}
+
+module "cloudtrail_tamper_function" {
+  source                      = "../../modules/lambda"
+  function_name               = "cloudtrail_tamper_function"
+  runtime                     = "python3.14"
+  memory_size                 = 256
+  timeout                     = 60
+  log_format                  = "JSON"
+  deletion_protection_enabled = false
+  log_group_class             = "STANDARD"
+  retention_in_days           = 7
+  target_role_arns            = var.target_role_arns
+  sns_topic_arn               = module.sns_critical.topic_arn
+  kms_key_arn                 = module.main_key.key_arn
+  prefix                      = local.prefix
+  lambda_environment_variables = {
+    REGION                        = var.region
+    SNS_TOPIC_ARN                 = module.sns_critical.topic_arn
+    TARGET_ROLE_ARNS              = jsonencode(var.target_role_arns)
+    TRAIL_ARN                     = module.main_trail.cloudtrail_arn
+    TRAIL_NAME                    = module.main_trail.cloudtrail_name
+    BUCKET_NAME                   = module.central-logs-bucket.bucket
+    KMS_KEY_ID                    = module.main_key.key_arn
+    BUCKET_PREFIX                 = "cloudtrail"
+    INCLUDE_GLOBAL_SERVICE_EVENTS = "True"
+    MULTI_REGION                  = "True"
+    LOG_FILE_VALIDATION           = "True"
+  }
+  extra_statements = [
+    {
+      sid       = "ListCloudTrails"
+      effect    = "Allow"
+      resources = ["*"]
+      actions   = ["cloudtrail:ListTrails"]
+    },
+    {
+      sid       = "RemediateCloudTrail"
+      effect    = "Allow"
+      resources = ["*"]
+      actions = [
+        "cloudtrail:CreateTrail",
+        "cloudtrail:GetTrail",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:ListTags",
+        "cloudtrail:AddTags",
+        "cloudtrail:StartLogging",
+        "cloudtrail:UpdateTrail"
+      ]
+    }
+  ]
 }
 
 module "central_cloudwatch_dashboard" {
