@@ -110,8 +110,14 @@ module "main_key" {
         type        = "Service"
         identifiers = ["cloudtrail.amazonaws.com"]
       }
-      conditions = []
-      resources  = ["*"]
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceArn"
+          values   = ["arn:${local.partition}:cloudtrail:${local.region}:${local.account_id}:trail/${local.prefix}-${var.trail_name}"]
+        }
+      ]
+      resources = ["*"]
     },
     {
       sid     = "AllowCloudTrailCreateGrantForAWSResource"
@@ -151,9 +157,22 @@ module "main_key" {
           values   = [local.account_id]
         },
         {
-          test     = "StringLike"
+          test     = "StringEquals"
+          variable = "aws:SourceArn"
+          values = [
+            "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.prefix}-high-alerts",
+            "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.prefix}-medium-alerts",
+            "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.prefix}-critical-alerts"
+          ]
+        },
+        {
+          test     = "StringEquals"
           variable = "kms:EncryptionContext:aws:sns:topicArn"
-          values   = ["arn:${local.partition}:sns:${local.region}:${local.account_id}:*"]
+          values = [
+            "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.prefix}-high-alerts",
+            "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.prefix}-medium-alerts",
+            "arn:${local.partition}:sns:${local.region}:${local.account_id}:${local.prefix}-critical-alerts"
+          ]
         }
       ]
     },

@@ -6,7 +6,7 @@ import json
 import os
 
 REGION = os.getenv("REGION", "us-east-1")
-SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:718394780433:security-aegis-sns-medium")
+SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
 ROLE_ARNS = json.loads(os.getenv("ROLE_ARNS", '[]'))
 
 logger = logging.getLogger(__name__)

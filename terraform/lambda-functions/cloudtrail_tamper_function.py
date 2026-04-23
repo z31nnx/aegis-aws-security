@@ -11,10 +11,10 @@ TRAIL_NAME = os.getenv("TRAIL_NAME")
 TRAIL_ARN = os.getenv("TRAIL_ARN", "arn:aws:cloudtrail:us-east-1:070593202443:trail/security-aegis-central-security-trail")
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 KMS_KEY_ID = os.getenv("KMS_KEY_ID")
-BUKET_PREFIX = os.getenv("BUCKET_PREFIX", "cloudtrail")
-INCLUDE_GLOBAL_SERVICE_EVENTS = bool(os.getenv("INCLUDE_GLOBAL_SERVICE_EVENTS", "True"))
-MULTI_REGION = bool(os.getenv("MULTI_REGION", "True"))
-LOG_FILE_VALIDATION = bool(os.getenv("LOG_FILE_VALIDATION", "True"))
+BUCKET_PREFIX = os.getenv("BUCKET_PREFIX", "cloudtrail")
+INCLUDE_GLOBAL_SERVICE_EVENTS = os.getenv("INCLUDE_GLOBAL_SERVICE_EVENTS", "True").strip().lower() == "true"
+MULTI_REGION = os.getenv("MULTI_REGION", "True").strip().lower() == "true"
+LOG_FILE_VALIDATION = os.getenv("LOG_FILE_VALIDATION", "True").strip().lower() == "true"
 TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 
 #if not all([SNS_TOPIC_ARN, TRAIL_ARN, TRAIL_NAME, BUCKET_NAME, KMS_KEY_ID]):
@@ -35,6 +35,12 @@ def log_client_error(e: ClientError, where: str) -> None:
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+def tags() -> list[dict]:
+    return [
+        {"Key": "Aegis:Status", "Value": "Remediated"},
+        {"Key": "Aegis:LastFix", "Value": now_utc_iso()}
+    ]
+
 def assume_role(role_arn, session_name) -> boto3.Session:
     try:
         creds = sts.assume_role(
@@ -52,18 +58,12 @@ def assume_role(role_arn, session_name) -> boto3.Session:
     except ClientError as e:
         log_client_error(e, "assume_role")
         raise
-
-def tags() -> list[dict]:
-    return [
-        {"Key": "Aegis:Status", "Value": "Remediated"},
-        {"Key": "Aegis:LastFix", "Value": now_utc_iso()}
-    ]
-
+    
 def trail_baseline() -> dict:
     return {
         "Name": TRAIL_NAME,
         "S3BucketName": BUCKET_NAME,
-        "S3KeyPrefix": BUKET_PREFIX,
+        "S3KeyPrefix": BUCKET_PREFIX,
         "IncludeGlobalServiceEvents": INCLUDE_GLOBAL_SERVICE_EVENTS,
         "IsMultiRegionTrail": MULTI_REGION,
         "LogFileValidationEnabled": LOG_FILE_VALIDATION,
@@ -80,7 +80,8 @@ def list_trails(cloudtrail) -> list[dict]:
                 trails.append(trail)
                 
     except ClientError as e:
-        log_client_error(e, "scan_trails")
+        log_client_error(e, "list_trails")
+        raise
         
     return trails
 
@@ -101,20 +102,21 @@ def lambda_handler(event, context):
     
     results = []
     
-    source_trail = boto3.client("cloudtrail", region_name=REGION)
-    source_acc = sts.get_caller_identity()["Account"]
+    source_cloudtrail = boto3.client("cloudtrail", region_name=REGION)
+    source_account = sts.get_caller_identity()["Account"]
     
-    trails = list_trails(cloudtrail=source_trail)
+    trails = list_trails(cloudtrail=source_cloudtrail)
     missing = is_missing(trails=trails)
     
     if missing == True:
-        logger.info("Missing trail, attempting to create")
+        logger.info("Missing trail detected")
     
     if TARGET_ROLE_ARNS:
         for role_arn in TARGET_ROLE_ARNS:
             try:
                 session = assume_role(role_arn=role_arn, session_name="AegisRemediation")
                 target_account = session.client("sts", region_name=REGION).get_caller_identity()["Account"]
+                target_cloudtrail = session.client("cloudtrail", region_name=REGION)
                 
             except ClientError as e:
                 log_client_error(e, f"Failed to assume role: {role_arn}")
@@ -123,8 +125,8 @@ def lambda_handler(event, context):
                     "RoleArn": role_arn,
                     "Reason": "AssumeRole or Scan failed"
                 })
-            
-            
+                
+                continue
     
     body = {
         "Results": results
