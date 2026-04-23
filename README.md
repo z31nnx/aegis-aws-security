@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License MIT" />
   <img src="https://img.shields.io/badge/Cloud-AWS-orange.svg" alt="Cloud AWS" />
   <img src="https://img.shields.io/badge/IaC-Terraform-7B42BC.svg" alt="IaC Terraform" />
-  <img src="https://img.shields.io/badge/Python-3.13-blue.svg" alt="Python 3.14" />
+  <img src="https://img.shields.io/badge/Python-3.14-blue.svg" alt="Python 3.14" />
   <img src="https://img.shields.io/badge/Framework-NIST--CSF-crimson.svg" alt="NIST-CSF" />
   <img src="https://img.shields.io/badge/Framework-MITRE--ATT&CK-crimson.svg" alt="MITRE" />
   <img src="https://img.shields.io/badge/Status-Deployable-green.svg" alt="Status Deployable" />
@@ -89,7 +89,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 - **Install/Update AWS CLI v2**: --> [Tutorial here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)
 - **Quick setup (`aws configure`)**: --> [Tutorial here](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-quickstart.html)
 - You'll need your own tfvars with proper variable inputs. ***I have excluded mine for best practice. Never commit tfvars to version control.*** Create a dev.tfvars or prod.tfvars under /envs/dev or /envs/prod. In this example, I have used dev.tfvars. 
-- A sample tfvars.example file is included to help you structure your variable inputs. Make sure to name it either **dev.tfvars** or **prod.tfvars** --> [Sample here](examples/dev.tfvars.example)
+- A sample tfvars.example file is included to help you structure your variable inputs --> [Sample here](examples/terraform.tfvars.example)
 - If you have any issues, see the [Troubleshooting](#troubleshooting) section below. 
 
 # Implementation Details
