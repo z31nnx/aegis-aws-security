@@ -133,7 +133,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
 
 ## Troubleshooting
-- **Terraform apply**: If you can't `terraform apply`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/security** folder.
+- **Terraform apply**: If you can't `terraform apply`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
 - **Multi-account**: Target accounts must have an **IAM role** that allows **lambda execution role** to assume that role with the necessary permission to remediate. **Default or custom event bus** in the target account should have rules that forward findings to the source (Aegis central security) event bus. Source account's event bus requires a resource based policy, that policy should allow the action of `"events:PutEvents"` from target account to source account's event bus. See permission -> [examples](./examples/) 
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.

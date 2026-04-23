@@ -1,5 +1,5 @@
 region      = "us-east-1"
-environment = "security"
+environment = "dev"
 owner       = "you"
 project     = "aegis"
 managedby   = "terraform"

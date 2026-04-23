@@ -8,7 +8,7 @@ import os
 REGION = os.getenv("REGION", "us-east-1")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
 TRAIL_NAME = os.getenv("TRAIL_NAME")
-TRAIL_ARN = os.getenv("TRAIL_ARN", "arn:aws:cloudtrail:us-east-1:070593202443:trail/security-aegis-central-security-trail")
+TRAIL_ARN = os.getenv("TRAIL_ARN")
 BUCKET_NAME = os.getenv("BUCKET_NAME")
 KMS_KEY_ID = os.getenv("KMS_KEY_ID")
 BUCKET_PREFIX = os.getenv("BUCKET_PREFIX", "cloudtrail")
