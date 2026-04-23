@@ -20,7 +20,7 @@ on:
       - 'terraform/**'
   workflow_dispatch:
   schedule:
-    - cron: '27 4 * * 3'  # weekly runs :) 
+    - cron: '27 4 * * 3'
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,7 +28,7 @@ concurrency:
 
 jobs:
   terraform:
-    name: Terraform CI
+    name: Terraform CI (${{ matrix.envdir }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -41,9 +41,9 @@ jobs:
       - name: Terraform fmt
         run: terraform fmt -check -recursive
       - name: Init (no backend)
-        run: terraform -chdir=terraform/envs/dev init -backend=false
+        run: terraform -chdir=${{ matrix.envdir }} init -backend=false
       - name: Validate
-        run: terraform -chdir=terraform/envs/dev validate
+        run: terraform -chdir=${{ matrix.envdir }} validate
       - name: Setup TFLint
         uses: terraform-linters/setup-tflint@v4
         with:
@@ -74,4 +74,3 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: tfsec.sarif
-
