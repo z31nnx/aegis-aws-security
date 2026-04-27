@@ -209,27 +209,15 @@ def actor_meta(detail) -> dict:
         "User": ui.get("userName")
     }
     
-def build_finding(account, region, actor, event_name, source_ip, detected_at, remediation) -> dict:
+def build_finding(remediation) -> dict:
     cidr = remediation.get("Ipv4") or remediation.get("Ipv6")
     
     return {
-        "Actor": actor,
-        "Account": account,
-        "Region": region,
         "FindingType": "SecurityGroupOpenToWorld",
-        "Severity": "Medium",
-        "DetectedAt": detected_at,
-        "Event": {
-            "Name": event_name,
-            "SourceIp": source_ip
-        },
         "Resource": {
             "Type": "SecurityGroup",
             "GroupId": remediation.get("GroupId"),
-            "GroupName": remediation.get("GroupName")
-        },
-        "Risk": {
-            "Summary": f"Security group allows public access to TCP/{remediation.get('FromPort')}.",
+            "GroupName": remediation.get("GroupName"),
             "Exposure": cidr,
             "Protocol": remediation.get("Protocol"),
             "FromPort": remediation.get("FromPort"),
@@ -306,10 +294,6 @@ def lambda_handler(event, context):
             finding = build_finding(
                 account=source_account,
                 region=REGION,
-                actor=actor,
-                event_name=event_name,
-                source_ip=ip,
-                detected_at=when,
                 remediation=rem
             )
             
@@ -342,10 +326,6 @@ def lambda_handler(event, context):
                         finding = build_finding(
                             account=target_account,
                             region=REGION,
-                            actor=actor,
-                            event_name=event_name,
-                            source_ip=ip,
-                            detected_at=when,
                             remediation=rem
                         )
                         
@@ -357,6 +337,7 @@ def lambda_handler(event, context):
                         "UpdatedTags": tagging,
                         "Findings": account_findings
                     })
+                    
             except ClientError as e:
                 log_client_error(e, f"target_account_processing:{role_arn}")
                 results.append({
@@ -365,9 +346,14 @@ def lambda_handler(event, context):
                     "Reason": "AssumeRole or account processing failed"
                 })
                 continue
-
+    
+    total_findings = 0
+    for r in results:
+        total_findings += len(r.get("Findings", []))
+    
     body = {
-        "Results": results
+        "Results": results,
+        "TotalFindings": total_findings
     }
     
     subject = build_subject()
