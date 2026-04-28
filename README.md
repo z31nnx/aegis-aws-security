@@ -124,7 +124,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 
 | Scenario | How to simulate (safe) | Expected outcome |
 |---|---|---|
-| CloudTrail tamper | Delete/Stop/Update via AWS Console | Lambda re-enables/re-creates trail, goes back to baseline; HIGH SNS alert |
+| CloudTrail tamper | Delete/Stop/Update via AWS Console | Lambda re-enables/re-creates trail, goes back to baseline; CRITICAL SNS alert |
 | SSH open to world | Create SG with `0.0.0.0/0` or `::/0` on port 22 | Lambda removes ingress / quarantines SG; MED SNS alert |
 | RDP open to world | Create SG with `0.0.0.0/0` or `::/0` on port 3389 | Same as above |
 | Crypto mining findings | Go on GuardDuty console and **Generate sample findings** or custom test event for lambda | Lambda fires on GuardDuty CryptoCurrency events via EventBridge service; HIGH SNS alert |

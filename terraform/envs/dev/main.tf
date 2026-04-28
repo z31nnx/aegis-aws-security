@@ -381,7 +381,6 @@ module "main_trail" {
 
 module "guardduty" {
   source                       = "../../modules/guardduty"
-  region                       = null
   finding_publishing_frequency = "FIFTEEN_MINUTES"
   enable                       = true
   features = [
@@ -656,29 +655,6 @@ module "ssh_rdp_event_rule" {
   })
 }
 
-module "cloudtrail_tamper_event_rule" {
-  source         = "../../modules/eventbridge_rule"
-  state          = "ENABLED"
-  rule_name      = "cloudtrail-tamper-rule"
-  target_id      = "ToLambda"
-  event_bus_name = null
-  target_arn     = module.cloudtrail_tamper_function.function_arn
-  prefix         = local.prefix
-  event_pattern = jsonencode({
-    source        = ["aws.cloudtrail"]
-    "detail-type" = ["AWS API Call via CloudTrail"]
-    detail = {
-      eventSource = ["cloudtrail.amazonaws.com"]
-      eventName = [
-        "StopLogging",
-        "DeleteTrail",
-        "UpdateTrail",
-        "PutEventSelectors"
-      ]
-    }
-  })
-}
-
 module "cloudtrail_tamper_function" {
   source                      = "../../modules/lambda"
   function_name               = "cloudtrail_tamper_function"
@@ -710,6 +686,12 @@ module "cloudtrail_tamper_function" {
     MULTI_REGION                  = "True"
     LOG_FILE_VALIDATION           = "True"
   }
+    trigger = {
+    statement_id = "AllowExecutionFromEventBridge"
+    action       = "lambda:InvokeFunction"
+    principal    = "events.amazonaws.com"
+    source_arn   = module.cloudtrail_tamper_event_rule.rule_arn
+  }
   extra_statements = [
     {
       sid       = "ListCloudTrails"
@@ -732,6 +714,29 @@ module "cloudtrail_tamper_function" {
       ]
     }
   ]
+}
+
+module "cloudtrail_tamper_event_rule" {
+  source         = "../../modules/eventbridge_rule"
+  state          = "ENABLED"
+  rule_name      = "cloudtrail-tamper-rule"
+  target_id      = "ToLambda"
+  event_bus_name = null
+  target_arn     = module.cloudtrail_tamper_function.function_arn
+  prefix         = local.prefix
+  event_pattern = jsonencode({
+    source        = ["aws.cloudtrail"]
+    "detail-type" = ["AWS API Call via CloudTrail"]
+    detail = {
+      eventSource = ["cloudtrail.amazonaws.com", "${module.main_trail.cloudtrail_arn}"]
+      eventName = [
+        "StopLogging",
+        "DeleteTrail",
+        "UpdateTrail",
+        "PutEventSelectors"
+      ]
+    }
+  })
 }
 
 module "central_cloudwatch_dashboard" {
