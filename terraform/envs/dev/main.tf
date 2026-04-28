@@ -656,6 +656,29 @@ module "ssh_rdp_event_rule" {
   })
 }
 
+module "cloudtrail_tamper_event_rule" {
+  source         = "../../modules/eventbridge_rule"
+  state          = "ENABLED"
+  rule_name      = "cloudtrail-tamper-rule"
+  target_id      = "ToLambda"
+  event_bus_name = null
+  target_arn     = module.cloudtrail_tamper_function.function_arn
+  prefix         = local.prefix
+  event_pattern = jsonencode({
+    source        = ["aws.cloudtrail"]
+    "detail-type" = ["AWS API Call via CloudTrail"]
+    detail = {
+      eventSource = ["cloudtrail.amazonaws.com"]
+      eventName = [
+        "StopLogging",
+        "DeleteTrail",
+        "UpdateTrail",
+        "PutEventSelectors"
+      ]
+    }
+  })
+}
+
 module "cloudtrail_tamper_function" {
   source                      = "../../modules/lambda"
   function_name               = "cloudtrail_tamper_function"
