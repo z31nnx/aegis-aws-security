@@ -20,6 +20,13 @@ INCLUDE_GLOBAL_SERVICE_EVENTS = os.getenv("INCLUDE_GLOBAL_SERVICE_EVENTS", "true
 MULTI_REGION = os.getenv("MULTI_REGION", "true").strip().lower() == "true"
 LOG_FILE_VALIDATION = os.getenv("LOG_FILE_VALIDATION", "true").strip().lower() == "true"
 
+if not all([
+    ENVIRONMENT, PROJECT, OWNER,
+    MANAGEDBY, SNS_TOPIC_ARN, TRAIL_ARN, TRAIL_NAME, BUCKET_NAME,
+    KMS_KEY_ID, BUCKET_PREFIX, LOG_FILE_VALIDATION, MULTI_REGION, INCLUDE_GLOBAL_SERVICE_EVENTS
+    ]):
+    raise RuntimeError("Missing required ENVS. Check Lambda env configurations.")
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)

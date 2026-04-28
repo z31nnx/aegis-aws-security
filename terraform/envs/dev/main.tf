@@ -686,7 +686,7 @@ module "cloudtrail_tamper_function" {
     MULTI_REGION                  = "True"
     LOG_FILE_VALIDATION           = "True"
   }
-    trigger = {
+  trigger = {
     statement_id = "AllowExecutionFromEventBridge"
     action       = "lambda:InvokeFunction"
     principal    = "events.amazonaws.com"
@@ -739,167 +739,6 @@ module "cloudtrail_tamper_event_rule" {
   })
 }
 
-module "central_cloudwatch_dashboard" {
-  source         = "../../modules/cloudwatch_dashboard"
-  prefix         = local.prefix
-  dashboard_name = "central-dashboard"
-  region         = var.region
-
-  dashboard_body = jsonencode({
-    widgets = [
-      {
-        type   = "metric"
-        x      = 0
-        y      = 0
-        width  = 18
-        height = 9
-        properties = {
-          title  = "Lambda Automation Overview"
-          view   = "timeSeries"
-          period = 300
-          region = var.region
-          stat   = "Sum"
-          metrics = [
-            ["AWS/Lambda", "Invocations", "FunctionName", module.ssh_rdp_function.function_name],
-            [".", "Errors", ".", "."],
-            [".", "Throttles", ".", "."]
-          ]
-        }
-      },
-      {
-        type   = "metric"
-        x      = 18
-        y      = 0
-        width  = 6
-        height = 2
-        properties = {
-          title                = "Lambda Errors"
-          view                 = "singleValue"
-          region               = var.region
-          period               = 300
-          stat                 = "Sum"
-          sparkline            = true
-          setPeriodToTimeRange = true
-          metrics = [
-            ["AWS/Lambda", "Errors", "FunctionName", module.ssh_rdp_function.function_name]
-          ]
-        }
-      },
-      {
-        type   = "metric"
-        x      = 18
-        y      = 2
-        width  = 6
-        height = 2
-        properties = {
-          title                = "Lambda Throttles"
-          view                 = "singleValue"
-          region               = var.region
-          period               = 300
-          stat                 = "Sum"
-          sparkline            = true
-          setPeriodToTimeRange = true
-          metrics = [
-            ["AWS/Lambda", "Throttles", "FunctionName", module.ssh_rdp_function.function_name]
-          ]
-        }
-      },
-      {
-        type   = "metric"
-        x      = 18
-        y      = 4
-        width  = 6
-        height = 4
-        properties = {
-          title  = "Lambda Duration vs Timeout"
-          view   = "gauge"
-          region = var.region
-          stat   = "Maximum"
-          period = 300
-          metrics = [
-            ["AWS/Lambda", "Duration", "FunctionName", module.ssh_rdp_function.function_name]
-          ]
-          yAxis = {
-            left = {
-              min = 0
-              max = 60000
-            }
-          }
-          annotations = {
-            horizontal = [
-              {
-                value = 45000
-                label = "Warning"
-              },
-              {
-                value = 60000
-                label = "Timeout"
-              }
-            ]
-          }
-        }
-      },
-      {
-        type   = "metric"
-        x      = 0
-        y      = 8
-        width  = 18
-        height = 6
-        properties = {
-          title  = "SNS Alerts Overview"
-          view   = "timeSeries"
-          period = 300
-          region = var.region
-          stat   = "Sum"
-          metrics = [
-            ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_medium.topic_name],
-            [".", "NumberOfNotificationsDelivered", ".", "."],
-            [".", "NumberOfNotificationsFailed", ".", "."]
-          ]
-        }
-      },
-      {
-        type   = "metric"
-        x      = 18
-        y      = 8
-        width  = 6
-        height = 3
-        properties = {
-          title                = "SNS Delivered"
-          view                 = "singleValue"
-          region               = var.region
-          period               = 300
-          stat                 = "Sum"
-          sparkline            = true
-          setPeriodToTimeRange = true
-          metrics = [
-            ["AWS/SNS", "NumberOfNotificationsDelivered", "TopicName", module.sns_medium.topic_name]
-          ]
-        }
-      },
-      {
-        type   = "metric"
-        x      = 18
-        y      = 11
-        width  = 6
-        height = 3
-        properties = {
-          title                = "SNS Failed"
-          view                 = "singleValue"
-          region               = var.region
-          period               = 300
-          stat                 = "Sum"
-          sparkline            = true
-          setPeriodToTimeRange = true
-          metrics = [
-            ["AWS/SNS", "NumberOfNotificationsFailed", "TopicName", module.sns_medium.topic_name]
-          ]
-        }
-      }
-    ]
-  })
-}
-
 module "test_sg" {
   source  = "../../modules/sg"
   prefix  = local.prefix
@@ -936,5 +775,187 @@ module "test_sg" {
       cidr_ipv4   = "0.0.0.0/0"
     }
   }
+}
 
+
+module "central_cloudwatch_dashboard" {
+  source         = "../../modules/cloudwatch_dashboard"
+  prefix         = local.prefix
+  dashboard_name = "central-dashboard"
+  region         = var.region
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 18
+        height = 9
+        properties = {
+          title  = "Lambda Automation Overview"
+          view   = "timeSeries"
+          period = 300
+          region = var.region
+          stat   = "Sum"
+          metrics = [
+            ["AWS/Lambda", "Invocations", "FunctionName", module.ssh_rdp_function.function_name],
+            [".", "Errors", ".", "."],
+            [".", "Throttles", ".", "."],
+            ["AWS/Lambda", "Invocations", "FunctionName", module.cloudtrail_tamper_function.function_name],
+            [".", "Errors", ".", "."],
+            [".", "Throttles", ".", "."]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 0
+        width  = 6
+        height = 2
+        properties = {
+          title                = "Lambda Errors"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/Lambda", "Errors", "FunctionName", module.ssh_rdp_function.function_name, { id = "e1", visible = false }],
+            ["AWS/Lambda", "Errors", "FunctionName", module.cloudtrail_tamper_function.function_name, { id = "e2", visible = false }],
+            [{ expression = "e1 + e2", label = "Total Errors" }]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 2
+        width  = 6
+        height = 2
+        properties = {
+          title                = "Lambda Throttles"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/Lambda", "Throttles", "FunctionName", module.ssh_rdp_function.function_name, { id = "t1", visible = false }],
+            ["AWS/Lambda", "Throttles", "FunctionName", module.cloudtrail_tamper_function.function_name, { id = "t2", visible = false }],
+            [{ expression = "t1 + t2", label = "Total Throttles" }]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 4
+        width  = 6
+        height = 4
+        properties = {
+          title  = "Lambda Duration vs Timeout"
+          view   = "gauge"
+          region = var.region
+          stat   = "Maximum"
+          period = 300
+          metrics = [
+            ["AWS/Lambda", "Duration", "FunctionName", module.ssh_rdp_function.function_name, { id = "d1", visible = false }],
+            ["AWS/Lambda", "Duration", "FunctionName", module.cloudtrail_tamper_function.function_name, { id = "d2", visible = false }],
+            [{ expression = "MAX([d1,d2])", label = "Max Duration" }]
+          ]
+          yAxis = {
+            left = {
+              min = 0
+              max = 60000
+            }
+          }
+          annotations = {
+            horizontal = [
+              {
+                value = 45000
+                label = "Warning"
+              },
+              {
+                value = 60000
+                label = "Timeout"
+              }
+            ]
+          }
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 8
+        width  = 18
+        height = 6
+        properties = {
+          title  = "SNS Alerts Overview"
+          view   = "timeSeries"
+          period = 300
+          region = var.region
+          stat   = "Sum"
+          metrics = [
+            ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_medium.topic_name],
+            [".", "NumberOfNotificationsDelivered", ".", "."],
+            [".", "NumberOfNotificationsFailed", ".", "."],
+            ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_high.topic_name],
+            [".", "NumberOfNotificationsDelivered", ".", "."],
+            [".", "NumberOfNotificationsFailed", ".", "."],
+            ["AWS/SNS", "NumberOfMessagesPublished", "TopicName", module.sns_critical.topic_name],
+            [".", "NumberOfNotificationsDelivered", ".", "."],
+            [".", "NumberOfNotificationsFailed", ".", "."]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 8
+        width  = 6
+        height = 3
+        properties = {
+          title                = "SNS Delivered"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/SNS", "NumberOfNotificationsDelivered", "TopicName", module.sns_medium.topic_name, { id = "sd1", visible = false }],
+            ["AWS/SNS", "NumberOfNotificationsDelivered", "TopicName", module.sns_high.topic_name, { id = "sd2", visible = false }],
+            ["AWS/SNS", "NumberOfNotificationsDelivered", "TopicName", module.sns_critical.topic_name, { id = "sd3", visible = false }],
+            [{ expression = "sd1 + sd2 + sd3", label = "Total Delivered" }]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 18
+        y      = 11
+        width  = 6
+        height = 3
+        properties = {
+          title                = "SNS Failed"
+          view                 = "singleValue"
+          region               = var.region
+          period               = 300
+          stat                 = "Sum"
+          sparkline            = true
+          setPeriodToTimeRange = true
+          metrics = [
+            ["AWS/SNS", "NumberOfNotificationsFailed", "TopicName", module.sns_medium.topic_name, { id = "sf1", visible = false }],
+            ["AWS/SNS", "NumberOfNotificationsFailed", "TopicName", module.sns_high.topic_name, { id = "sf2", visible = false }],
+            ["AWS/SNS", "NumberOfNotificationsFailed", "TopicName", module.sns_critical.topic_name, { id = "sf3", visible = false }],
+            [{ expression = "sf1 + sf2 + sf3", label = "Total Failed" }]
+          ]
+        }
+      }
+    ]
+  })
 }

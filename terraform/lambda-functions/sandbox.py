@@ -1,9 +1,9 @@
 from botocore.exceptions import ClientError
-from datetime import datetime, timezone
+from datetime import datetime, timezone 
 import logging
 import boto3
 import json
-import os
+import os 
 
 REGION = os.getenv("REGION", "us-east-1")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
@@ -209,6 +209,27 @@ def actor_meta(detail) -> dict:
         "User": ui.get("userName")
     }
     
+def build_finding(remediation) -> dict:
+    cidr = remediation.get("Ipv4") or remediation.get("Ipv6")
+    
+    return {
+        "FindingType": "SecurityGroupOpenToWorld",
+        "Resource": {
+            "Type": "SecurityGroup",
+            "GroupId": remediation.get("GroupId"),
+            "GroupName": remediation.get("GroupName"),
+            "Exposure": cidr,
+            "Protocol": remediation.get("Protocol"),
+            "FromPort": remediation.get("FromPort"),
+            "ToPort": remediation.get("ToPort")
+        },
+        "Remediation": {
+            "Action": remediation.get("Action"),
+            "Status": remediation.get("Status"),
+            "Error": remediation.get("Error")
+        }
+    }
+
 def build_subject() -> str:
     return f"[Aegis/Medium] Security Group Exposure Alert"
 
@@ -241,8 +262,7 @@ def publish_sns(arn, subject, message):
         )
     except ClientError as e:
         log_client_error(e, "publish_sns")
-      
-      
+        
 def lambda_handler(event, context):
     logger.info("Lambda Started!")
     logger.info(f"Event received: {json.dumps(event)}")
@@ -259,7 +279,7 @@ def lambda_handler(event, context):
     source_account = sts.get_caller_identity()["Account"]
     
     results = []
-
+    
     exposed = scan_exposed_sg(ec2=ec2)
     if exposed:
         logger.info(f"Found exposed Security Groups in Source Account: {source_account}")
@@ -267,12 +287,22 @@ def lambda_handler(event, context):
         remediate = remediate_exposed_sg(ec2=ec2, sgs=exposed)
         tagging = tag_sg(ec2=ec2, sgs=remediate)
         logger.info(f"Source account remediation complete.")
+        account_findings = []
+        
+        for rem in remediate:
+            finding = build_finding(
+                account=source_account,
+                region=REGION,
+                remediation=rem
+            )
+            
+            account_findings.append(finding)
             
         results.append({
             "Status": "NON-COMPLIANT",
             "Account": source_account,
             "UpdatedTags": tagging,
-            "Findings": remediate
+            "Findings": account_findings
         })
         
     if TARGET_ROLE_ARNS:
@@ -288,11 +318,23 @@ def lambda_handler(event, context):
                     logger.info(f"Remediating target")
                     remediate = remediate_exposed_sg(ec2=target_ec2, sgs=exposed)
                     tagging = tag_sg(ec2=target_ec2, sgs=remediate)
+                    
+                    account_findings = []
+                    
+                    for rem in remediate:
+                        finding = build_finding(
+                            account=target_account,
+                            region=REGION,
+                            remediation=rem
+                        )
+                        
+                        account_findings.append(finding)
+                        
                     results.append({
                         "Status": "NON-COMPLIANT",
                         "Account": target_account,
                         "UpdatedTags": tagging,
-                        "Findings": remediate
+                        "Findings": account_findings
                     })
                     
             except ClientError as e:
