@@ -11,7 +11,6 @@ PROJECT = os.getenv("PROJECT")
 OWNER = os.getenv("OWNER")
 MANAGEDBY = os.getenv("MANAGEDBY")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
-TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 TRAIL_ARN = os.getenv("TRAIL_ARN")
 TRAIL_NAME = os.getenv("TRAIL_NAME")
 BUCKET_NAME = os.getenv("BUCKET_NAME")
@@ -33,24 +32,6 @@ def log_client_error(e: ClientError, where: str) -> None:
     msg = e.response["Error"].get("Message", "No message")
     logger.exception(f"Error caught in {where}: {code} - {msg}")
 
-def assume_role(role_arn) -> boto3.Session:
-    try:
-        creds = sts.assume_role(
-            RoleArn=role_arn,
-            RoleSessionName="AegisRemediation"
-        )["Credentials"]
-    
-        return boto3.Session(
-            aws_access_key_id=creds["AccessKeyId"],
-            aws_secret_access_key=creds["SecretAccessKey"],
-            aws_session_token=creds["SessionToken"],
-            region_name=REGION
-        )
-    
-    except ClientError as e:
-        log_client_error(e, "assume_role")
-        raise
-    
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -86,10 +67,50 @@ def trail_baseline() -> dict:
         "IncludeGlobalServiceEvents": INCLUDE_GLOBAL_SERVICE_EVENTS,
         "IsMultiRegionTrail": MULTI_REGION,
         "EnableLogFileValidation": LOG_FILE_VALIDATION,
-        "KmsKeyId": KMS_KEY_ID 
     }
+
+    if KMS_KEY_ID:
+        baseline["KmsKeyId"] = KMS_KEY_ID
     
     return baseline
+
+def scan_trail_status(cloudtrail):
+    findings = []
+    
+    try:
+        stats = cloudtrail.get_trail(Name=TRAIL_ARN)["Trail"]
+        bucket = stats.get("S3BucketName")
+        prefix = stats.get("S3KeyPrefix")
+        multi_region = stats.get("IsMultiRegionTrail")
+        log_file_validation = stats.get("LogFileValidationEnabled")
+        
+        if (
+            bucket != BUCKET_NAME 
+            or prefix != "cloudtrail" 
+            or multi_region is False 
+            or log_file_validation is False
+        ):
+            findings.append({
+                "S3Bucket": bucket,
+                "Prefix": prefix,
+                "MultiRegion": multi_region,
+                "LogFileValidation": log_file_validation
+            })
+        
+    except ClientError as e:
+        log_client_error(e, "scan_trail_status")
+        
+    return findings
+
+def remediate_stats(cloudtrail):
+    try:
+        cloudtrail.update_trail(
+            **trail_baseline()
+        )
+        return True
+    except ClientError as e:
+        log_client_error(e, "remediate_stats")
+        return False
     
 def is_logging(cloudtrail) -> bool:
     try:
@@ -123,7 +144,7 @@ def remediate_trail(cloudtrail) -> list[dict]:
     
     try: 
         response = cloudtrail.create_trail(
-            trail_baseline()
+            **trail_baseline()
         )
 
         cloudtrail.add_tags(
@@ -167,12 +188,13 @@ def build_finding(remediation) -> dict:
             "CloudTrailARN": TRAIL_ARN,
         },
         "Baseline": remediation.get("Baseline", {}),
+        "Drift": remediation.get("Drift", {}),
         "Remediation": {
             "Action": remediation.get("Action"),
             "Status": remediation.get("Status"),
             "Error": remediation.get("Error")
         }
-    }  
+    }
 
 def build_subject() -> str:
     return "[Aegis/Critical] CloudTrail Tamper Alert"
@@ -233,6 +255,7 @@ def lambda_handler(event, context):
     if missing:
         logger.info(f"Missing trail detected in {source_account}.")
         logger.info("Attempting to remediate")
+
         remediate = remediate_trail(cloudtrail=cloudtrail)
         
         for rem in remediate:
@@ -240,10 +263,31 @@ def lambda_handler(event, context):
                 remediation=rem
             )
             account_findings.append(finding)
-            
-        logging = False
+
+        start_logging = remediate_logging(cloudtrail=cloudtrail)
+
+        finding = build_finding(
+            remediation={
+                "Status": "SUCCESS" if start_logging else "FAILED",
+                "Action": "StartLogging"
+            }
+        )
+        account_findings.append(finding)
 
     else:
+        stats = scan_trail_status(cloudtrail=cloudtrail)
+        if stats:
+            remediate_stat = remediate_stats(cloudtrail=cloudtrail)
+            finding = build_finding(
+                remediation={
+                    "Status": "SUCCESS" if remediate_stat else "FAILED",
+                    "Action": "UpdateTrail",
+                    "Baseline": trail_baseline(),
+                    "Drift": stats
+                }
+            )
+            account_findings.append(finding)
+            
         logging = is_logging(cloudtrail=cloudtrail)
         if logging == False:
             start_logging = remediate_logging(cloudtrail=cloudtrail)
@@ -255,64 +299,14 @@ def lambda_handler(event, context):
                 }
             )
             account_findings.append(finding)
+
+    logging = is_logging(cloudtrail=cloudtrail)
     
     results.append({
         "Account": source_account,
         "Logging": logging,
         "Findings": account_findings
     })
-    
-    if TARGET_ROLE_ARNS:
-        for role_arn in TARGET_ROLE_ARNS:
-            try:
-                session = assume_role(role_arn=role_arn)
-                target_account = session.client("sts").get_caller_identity()["Account"]
-                logger.info(f"Scanning target account: {target_account}")
-                target_cloudtrail = session.client("cloudtrail", region_name=REGION)
-                
-                account_findings = []
-                
-                trails = list_trails(cloudtrail=target_cloudtrail)
-                missing = is_missing(trails=trails)
-
-                if missing:
-                    logger.info(f"Missing trail detected in target account: {target_account}")
-                    remediate = remediate_trail(cloudtrail=target_cloudtrail)
-                    
-                    for rem in remediate:
-                        finding = build_finding(remediation=rem)
-                        account_findings.append(finding)
-
-                    logging = False
-
-                else:
-                    logging = is_logging(cloudtrail=target_cloudtrail)
-                    
-                    if logging == False:
-                        start_logging = remediate_logging(cloudtrail=target_cloudtrail)
-
-                        finding = build_finding(
-                            remediation={
-                                "Status": "SUCCESS" if start_logging else "FAILED",
-                                "Action": "StartLogging"
-                            }
-                        )
-                        account_findings.append(finding)
-                        
-                results.append({
-                    "Account": target_account,
-                    "Logging": logging,
-                    "Findings": account_findings
-                })
-            
-            except ClientError as e:
-                log_client_error(e, f"Target account processing: {role_arn}")
-                results.append({
-                    "Status": "ERROR",
-                    "RoleArn": role_arn,
-                    "Reason": "AssumeRole or account processing failed"
-                })
-                continue
     
     body = {
         "Results": results
