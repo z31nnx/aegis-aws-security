@@ -672,6 +672,10 @@ module "cloudtrail_tamper_function" {
   prefix                      = local.prefix
   lambda_environment_variables = {
     REGION                        = var.region
+    ENVIRONMENT                   = var.environment
+    PROJECT                       = var.project
+    OWNER                         = var.owner
+    MANAGEDBY                     = var.managedby
     SNS_TOPIC_ARN                 = module.sns_critical.topic_arn
     TARGET_ROLE_ARNS              = jsonencode(var.target_role_arns)
     TRAIL_ARN                     = module.main_trail.cloudtrail_arn

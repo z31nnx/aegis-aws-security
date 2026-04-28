@@ -251,7 +251,6 @@ Recommended Actions:
 - Confirm the exposed security group rule was expected or unauthorized.
 - Validate that remediation succeeded.
 - Re-run the audit to confirm the exposure is closed.
-- Touch grass if needed.
 """
 
 def publish_sns(arn, subject, message):
@@ -273,7 +272,7 @@ def lambda_handler(event, context):
     detail = event.get("detail", {})
     event_name = detail.get("eventName", "Unknown")
     ip = detail.get("sourceIpAddress", "Unknown")
-    when = now_utc_iso()
+    time = now_utc_iso()
     actor = actor_meta(detail)
     
     ec2 = boto3.client("ec2", region_name=REGION)
@@ -360,7 +359,7 @@ def lambda_handler(event, context):
     message = build_message(
         region=REGION,
         event=event_name,
-        time=when,
+        time=time,
         ip=ip,
         actor=actor,
         findings=body
