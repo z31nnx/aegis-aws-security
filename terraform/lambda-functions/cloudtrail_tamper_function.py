@@ -6,6 +6,10 @@ import json
 import os 
 
 REGION = os.getenv("REGION", "us-east-1")
+ENVIRONMENT = os.getenv("ENVIRONMENT")
+PROJECT = os.getenv("PROJECT")
+OWNER = os.getenv("OWNER")
+MANAGEDBY = os.getenv("MANAGEDBY")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
 TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 TRAIL_ARN = os.getenv("TRAIL_ARN")
@@ -65,7 +69,12 @@ def list_trails(cloudtrail) -> list[dict]:
 def tags() -> list[dict]:
     return [
         {"Key": "Aegis:Status", "Value": "Remediated"},
-        {"Key": "Aegis:LastFix", "Value": now_utc_iso()}
+        {"Key": "Aegis:LastFix", "Value": now_utc_iso()},
+        {"Key": "Environment", "Value": ENVIRONMENT},
+        {"Key": "Project", "Value": PROJECT},
+        {"Key": "Owner", "Value": OWNER},
+        {"Key": "ManagedBy", "Value": MANAGEDBY}
+        
     ]
     
 def trail_baseline() -> dict:
@@ -77,9 +86,29 @@ def trail_baseline() -> dict:
         "IsMultiRegionTrail": MULTI_REGION,
         "TrailARN": TRAIL_ARN,
         "LogFileValidationEnabled": LOG_FILE_VALIDATION,
-        "KmsKeyId": KMS_KEY_ID
+        "KmsKeyId": KMS_KEY_ID,
+        "TagsList": tags()
     }
-
+    
+def is_logging(cloudtrail) -> bool:
+    try:
+        cloudtrail.get_trail_status(
+            Name=TRAIL_ARN
+        )["IsLogging"]
+        
+    except ClientError as e:
+        log_client_error(e, "is_logging")
+        
+def remediate_logging(cloudtrail) -> bool:
+    try:
+        cloudtrail.start_logging(
+            Name=TRAIL_ARN
+        )
+        return True
+    except ClientError as e:
+        log_client_error(e, "remediate_logging")
+        return False
+    
 def is_missing(trails) -> bool:
     trail_arns = [t["TrailARN"] for t in trails]
     if TRAIL_ARN not in trail_arns:
@@ -87,18 +116,55 @@ def is_missing(trails) -> bool:
     
     return False
 
+def remediate_trail(cloudtrail) -> list[dict]:
+    findings = []
+    
+    try: 
+        cloudtrail.create_trail(
+            trail_baseline()
+        )
+        findings.append({
+        "Status": "SUCCESS",
+        "Action": "CreateTrail",
+        "Baseline": trail_baseline()
+    })
+        
+    except ClientError as e:
+        log_client_error(e, "create_trail")
+        findings.append({
+        "Status": "FAILED",
+        "Action": "CreateTrail",
+        "Baseline": trail_baseline(),
+        "Error": e.response["Error"].get("Message", "Unknown message")
+    })
+    
+    return findings
+
 def actor_meta(detail) -> dict:
     ui = detail.get("userIdentity", {})
-    att = ui.get("attributes", {})
     
     return {
         "User": ui.get("userName"),
         "AccountId": ui.get("accountId"),
         "PrincipalId": ui.get("principalId"),
-        "Arn": ui.get("arn"),
-        "CreationDate": att.get("creationDate"),
-        "MFA": att.get("mfaAuthenticated")
+        "Arn": ui.get("arn")
     }
+    
+def build_finding(remediation) -> dict:
+    
+    return {
+        "FindingType": "CloudTrailTamper",
+        "Resource": {
+            "Type": "CloudTrail",
+            "CloudTrailARN": TRAIL_ARN,
+        },
+        "Remediation": {
+            "Action": remediation.get("Action"),
+            "Status": remediation.get("Status"),
+            "Error": remediation.get("Error")
+        }
+    }   
+    
     
 def lambda_handler(event, context):
     logger.info("Lambda started!")
@@ -115,12 +181,31 @@ def lambda_handler(event, context):
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
-    source_cloudtrail = boto3.client("cloudtrail", region_name=REGION)
+    cloudtrail = boto3.client("cloudtrail", region_name=REGION)
     
-    trails = list_trails(cloudtrail=source_cloudtrail)
+    trails = list_trails(cloudtrail=cloudtrail)
+    logging = is_logging(cloudtrail=cloudtrail)
+    
+    if logging == False:
+        start_logging = remediate_logging()
+        
     missing = is_missing(trails=trails)
     if missing:
         logger.info(f"Missing trail detected in {source_account}.")
+        logger.info("Attempting to remediate")
+        remediate = remediate_trail()
+    
+    account_findings = []
+    finding = build_finding(
+        remediation=remediate
+    )
+    account_findings.append(finding)
+    
+    results.append({
+        "Account": source_account,
+        "Logging": logging,
+        "Findings": account_findings
+    })
     
     body = {
         "Results": results
