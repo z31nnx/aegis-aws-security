@@ -21,6 +21,53 @@ def log_client_error(e: ClientError, where: str) -> None:
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
+def describe_instance(ec2, iid) -> list[dict]:
+    findings = []
+    
+    try:
+        response = ec2.describe_instances(InstanceIds=[iid])
+        for r in response.get("Reservations", []):
+            for i in r.get('Instances', []):
+                iid = i["InstanceId"]
+                state = i["State"]["Name"]
+                vpc_id = i["VpcId"]
+                subnet_id = i["SubnetId"]
+                iam_profile = i.get("IamInstanceProfile", {}).get("Arn", "N/A")
+                for block_device in i.get("BlockDeviceMappings", []):
+                    volume_id = block_device["Ebs"]["VolumeId"]
+                
+                for sg in i.get("SecurityGroups", []):
+                    group_id = sg["GroupId"]
+                    
+                findings.append({
+                    "InstanceId": iid,
+                    "State": state,
+                    "VpcId": vpc_id,
+                    "SubnetId": subnet_id,
+                    "IAMProfile": iam_profile,
+                    "VolumeId": volume_id,
+                    "GroupId": group_id,
+                    "Action": "DescribeInstance",
+                    "Status": "Success"
+                })
+                    
+    except ClientError as e:
+        log_client_error(e, "describe_instance")
+        findings.append({
+            "InstanceId": iid,
+            "State": state,
+            "VpcId": vpc_id,
+            "SubnetId": subnet_id,
+            "IAMProfile": iam_profile,
+            "VolumeId": volume_id,
+            "GroupId": group_id,
+            "Action": "DescribeInstance",
+            "Status": "Failed",
+            "Error": e.response["Error"].get("Message", "No message")
+        })
+        
+    return findings
+
 def tags() -> list[dict]:
     return [
         {"Key": "Aegis:Status", "Value": "Quarantined"},
@@ -30,6 +77,7 @@ def tags() -> list[dict]:
     
 def tag_instance(ec2, iid) -> bool:
     findings = []
+    
     try:
         ec2.create_tags(
             Resources=[iid],
@@ -51,38 +99,48 @@ def tag_instance(ec2, iid) -> bool:
     
     return findings
 
-def describe_instance(ec2, iid) -> list[dict]:
+def quarantine_instance(ec2, instance, sg_id) -> list:
     findings = []
-    
-    try:
-        response = ec2.describe_instances(InstanceIds=[iid])
-        for r in response.get("Reservations", []):
-            for i in r.get('Instances', []):
-                iid = i["InstanceId"]
-                state = i["State"]["Name"]
-                vpc_id = i["VpcId"]
-                subnet_id = i["SubnetId"]
-                iam_profile = ["IamInstanceProfile"]["Arn"]
-                
-                for block_device in i.get("BlockDeviceMappings", []):
-                    volume_id = block_device["Ebs"]["VolumeId"]
-                
-                for sg in i.get("SecurityGroups", []):
-                    group_id = sg["GroupId"]
-                    
-                findings.append({
-                    "InstanceId": iid,
-                    "State": state,
-                    "VpcId": vpc_id,
-                    "SubnetId": subnet_id,
-                    "IAMProfile": iam_profile,
-                    "VolumeId": volume_id,
-                    "SecurityGroupId": group_id
-                })
-                    
-    except ClientError as e:
-        log_client_error(e, "describe_instance")
-        
+
+    for i in instance:
+        iid = i["InstanceId"]
+        profile = i["IAMProfile"]
+        actions = []
+
+        try:
+            if profile != "N/A":
+                ec2.disassociate_iam_instance_profile(
+                    AssociationId=profile
+                )
+                actions.append("DisassociateIAMInstanceProfile")
+
+            ec2.modify_instance_attribute(
+                InstanceId=iid,
+                Groups=[sg_id]
+            )
+            actions.append("ReplaceSecurityGroupWithQuarantineSG")
+
+            ec2.stop_instances(
+                InstanceIds=[iid]
+            )
+            actions.append("StopInstance")
+
+            findings.append({
+                "InstanceId": iid,
+                "Actions": actions,
+                "Status": "Success"
+            })
+
+        except ClientError as e:
+            log_client_error(e, "quarantine_instance")
+
+            findings.append({
+                "InstanceId": iid,
+                "Actions": actions,
+                "Status": "Failed",
+                "Error": e.response["Error"].get("Message", "No message")
+            })
+
     return findings
 
 def actor_meta(detail) -> dict: 
@@ -96,7 +154,7 @@ def actor_meta(detail) -> dict:
     }
     
 def guardduty_event(detail) -> dict:
-    resource = detail.get("resource", {})
+    resource = detail.get("resource", {}) 
     instance = resource.get("instanceDetails", {})
     
     return {
@@ -121,15 +179,22 @@ def lambda_handler(event, context):
     event_name = detail.get("eventName", "Uknown")
     event_type = detail.get("type", "Unknown")
     ip = detail.get("sourceIpAddress", "Unknown")
-    guardduty = guardduty_event(detail)
+    guardduty = guardduty_event(detail) or {}
     iid = guardduty.get("InstanceId", "Unknown")
     
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
-    instance = describe_instance(ec2=ec2, iid=iid)
+    instance = describe_instance(ec2=ec2, iid="i-018e0f2f275fcff51")
+    quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id="sg-0c7ea10f7f154a0ed")
     
-    print(instance)
+    results.append({
+        "Account": source_account,
+        "Instance": instance,
+        "Quarantined": quarantine
+    })
+    
+    print(results)
     
     body = {
         "Results": results
