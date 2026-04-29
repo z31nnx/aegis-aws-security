@@ -99,19 +99,39 @@ def tag_instance(ec2, iid) -> bool:
     
     return findings
 
+
+def get_iam_profile_association(ec2, iid) -> str | None:    
+    try:
+        response = ec2.describe_iam_instance_profile_associations(
+            Filters=[
+                {
+                    "Name": "instance-id",
+                    "Values": [iid]
+                }
+            ]
+        )
+        
+        associations = response.get("IamInstanceProfileAssociations", [])
+        if not associations:
+            return None 
+        
+        return associations[0]["AssociationId"]
+        
+    except ClientError as e:
+        log_client_error(e, "get_iam_profile_association")
+        return None
+
 def quarantine_instance(ec2, instance, sg_id) -> list:
     findings = []
 
     for i in instance:
         iid = i["InstanceId"]
-        profile = i["IAMProfile"]
         actions = []
-
+        association_id = get_iam_profile_association(ec2, iid)
+    
         try:
-            if profile != "N/A":
-                ec2.disassociate_iam_instance_profile(
-                    AssociationId=profile
-                )
+            if association_id:
+                ec2.disassociate_iam_instance_profile(AssociationId=association_id)
                 actions.append("DisassociateIAMInstanceProfile")
 
             ec2.modify_instance_attribute(
