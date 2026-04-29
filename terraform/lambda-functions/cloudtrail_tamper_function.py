@@ -171,7 +171,7 @@ def remediate_trail(cloudtrail) -> list[dict]:
             "Status": "FAILED",
             "Action": "CreateTrail",
             "Baseline": trail_baseline(),
-            "Error": e.response["Error"].get("Message", "Unknown message")
+            "Error": e.response["Error"].get("Message", "No message")
         })
     
     return findings

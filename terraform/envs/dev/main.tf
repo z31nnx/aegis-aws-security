@@ -665,7 +665,7 @@ module "cloudtrail_tamper_function" {
   deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
-  target_role_arns            = var.target_role_arns
+  target_role_arns            = []
   sns_topic_arn               = module.sns_critical.topic_arn
   kms_key_arn                 = module.main_key.key_arn
   prefix                      = local.prefix
@@ -676,7 +676,6 @@ module "cloudtrail_tamper_function" {
     OWNER                         = var.owner
     MANAGEDBY                     = var.managedby
     SNS_TOPIC_ARN                 = module.sns_critical.topic_arn
-    TARGET_ROLE_ARNS              = jsonencode(var.target_role_arns)
     TRAIL_ARN                     = module.main_trail.cloudtrail_arn
     TRAIL_NAME                    = module.main_trail.cloudtrail_name
     BUCKET_NAME                   = module.central-logs-bucket.bucket
@@ -739,6 +738,22 @@ module "cloudtrail_tamper_event_rule" {
   })
 }
 
+module "crypto_mining_function" {
+  source = "../../modules/lambda"
+  function_name               = "crypto_mining_function"
+  runtime                     = "python3.14"
+  memory_size                 = 256
+  timeout                     = 120
+  log_format                  = "JSON"
+  deletion_protection_enabled = false
+  log_group_class             = "STANDARD"
+  retention_in_days           = 7
+  target_role_arns            = var.target_role_arns
+  sns_topic_arn               = module.sns_high.topic_arn
+  kms_key_arn                 = module.main_key.key_arn
+  prefix                      = local.prefix
+}
+
 module "test_sg" {
   source  = "../../modules/sg"
   prefix  = local.prefix
@@ -791,7 +806,7 @@ module "central_cloudwatch_dashboard" {
         x      = 0
         y      = 0
         width  = 18
-        height = 9
+        height = 11
         properties = {
           title  = "Lambda Automation Overview"
           view   = "timeSeries"
@@ -813,7 +828,7 @@ module "central_cloudwatch_dashboard" {
         x      = 18
         y      = 0
         width  = 6
-        height = 2
+        height = 3
         properties = {
           title                = "Lambda Errors"
           view                 = "singleValue"
@@ -834,7 +849,7 @@ module "central_cloudwatch_dashboard" {
         x      = 18
         y      = 2
         width  = 6
-        height = 2
+        height = 3
         properties = {
           title                = "Lambda Throttles"
           view                 = "singleValue"
