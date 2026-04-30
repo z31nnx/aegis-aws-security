@@ -7,6 +7,7 @@ import os
 
 REGION = os.getenv("REGION", "us-east-1")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
+QUARANTINE_SG = os.getenv("QUARANTINE_SG", "sg-029c55e700cb433dc")
 TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 
 logger = logging.getLogger(__name__)
@@ -99,6 +100,49 @@ def tag_instance(ec2, iid) -> bool:
     
     return findings
 
+def snapshot_instance(ec2, instance) -> list:
+    findings = []
+    
+    for i in instance:
+        volume_id = i["VolumeId"]
+        iid = i["InstanceId"]
+        
+        try: 
+            ec2.create_snapshot(
+                VolumeId=volume_id,
+                Description=f"GuardDuty crypto remediation snapshot for {iid}",
+                TagSpecifications=[
+                    {
+                        "Tags": [
+                            {"Key": "Name", "Value": f"{iid}-{volume_id}-CryptoMiningSnapshot"},
+                            {"Key": "SourceId", "Value": iid},
+                            {"Key": "Aegis:Purpose", "Value": "Forensics"},
+                            {"Key": "CreatedBy", "Value": "AegisLambda"},
+                            {"Key": "Aegis:Reason", "Value": "CryptoCurrency:EC2/"},
+                            {"Key": "Aegis:LastSnapshot", "Value": now_utc_iso() },
+                        ]
+                    }
+                ]
+                                )
+            
+            findings.append({
+                "InstanceId": iid,
+                "VolumeId": volume_id,
+                "Action": "CreateSnapshot",
+                "Status": "Success"
+            })
+            
+        except ClientError as e:
+            log_client_error(e, "snapshot_instance")
+            findings.append({
+                "InstanceId": iid,
+                "VolumeId": volume_id,
+                "Action": "CreateSnapshot",
+                "Status": "Failed",
+                "Error": e.response["Error"].get("Message", "No message")
+            })
+            
+    return findings
 
 def get_iam_profile_association(ec2, iid) -> str | None:    
     try:
@@ -162,16 +206,6 @@ def quarantine_instance(ec2, instance, sg_id) -> list:
             })
 
     return findings
-
-def actor_meta(detail) -> dict: 
-    ui = detail.get("userIdentity", {})
-    
-    return {
-        "User": ui.get("userName"),
-        "AccountId": ui.get("accountId"),
-        "PrincipalId": ui.get("principalId"),
-        "Arn": ui.get("arn")
-    }
     
 def guardduty_event(detail) -> dict:
     resource = detail.get("resource", {}) 
@@ -184,6 +218,43 @@ def guardduty_event(detail) -> dict:
         "InstanceType": instance.get("instanceType")
     }
     
+def build_subject() -> str:
+    return f"[Aegis/High] GuardDuty Crypto Mining Alert"
+
+def build_message(account, region, event, time, ip, findings) -> str:
+    return f"""GuardDuty Findings Detected
+
+Finding ID:
+Finding type:
+Severity: High
+Event Name: {event}
+Account ID: {account}
+Region: {region}
+Time (UTC): {time}
+Source IP: {ip},
+
+Findings: {json.dumps(findings, indent=2)}
+
+Recommended Actions: 
+- Review the current findings.
+- Review the compromised instance.
+- Ensure the instance is (stopped, tagged, quarantined, and snapshotted).
+- Validate that remediation succeeded. 
+- Escalate if needed.
+"""    
+
+def publish_sns(sns, arn, subject, message) -> bool:
+    try:
+        sns.publish_sns(
+            TopicArn=arn,
+            Subject=subject,
+            Message=message
+        )
+        return True
+    except ClientError as e:
+        log_client_error(e, "publish_sns")
+        return False
+    
 def lambda_handler(event, context):
     logger.info(f"Lambda started!")
     logger.info(f"Event received: {json.dumps(event)}")
@@ -192,7 +263,6 @@ def lambda_handler(event, context):
     sts = boto3.client("sts", region_name=REGION)
     sns = boto3.client("sns", region_name=REGION)
     ec2 = boto3.client("ec2", region_name=REGION)
-    iam = boto3.client("iam")
     
     event = event or {}
     detail = event.get("detail", {})
@@ -205,8 +275,8 @@ def lambda_handler(event, context):
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
-    instance = describe_instance(ec2=ec2, iid="i-018e0f2f275fcff51")
-    quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id="sg-0c7ea10f7f154a0ed")
+    instance = describe_instance(ec2=ec2, iid="i-068b9faa0d8284eb1")
+    quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id="sg-029c55e700cb433dc")
     
     results.append({
         "Account": source_account,
