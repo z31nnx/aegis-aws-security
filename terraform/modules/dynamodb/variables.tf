@@ -1,0 +1,43 @@
+variable "prefix" {
+  type = string
+}
+variable "table_name" {
+  type = string
+}
+variable "deletion_protection" {
+  type = bool
+}
+variable "billing_mode" {
+  type = string
+}
+variable "read_capacity" {
+  type = number
+}
+variable "write_capacity" {
+  type = number
+}
+variable "hash_key" {
+  type = string
+}
+variable "range_key" {
+  type = string
+}
+variable "servver_side_encryption" {
+  type = object({
+    enabled = bool
+    kms_key_arn = string
+  })
+}
+variable "ttl" {
+  type = object({
+    attribute_name = string
+    enabled = bool
+  })
+}
+variable "attribute" {
+  type = optional(list(object({
+    name = string
+    type = string 
+  })))
+  default = []
+}

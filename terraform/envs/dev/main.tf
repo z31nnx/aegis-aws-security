@@ -739,7 +739,7 @@ module "cloudtrail_tamper_event_rule" {
 }
 
 module "crypto_mining_function" {
-  source = "../../modules/lambda"
+  source                      = "../../modules/lambda"
   function_name               = "crypto_mining_function"
   runtime                     = "python3.14"
   memory_size                 = 256
