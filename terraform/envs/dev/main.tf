@@ -13,7 +13,6 @@ module "main_key" {
   description             = "Main key for ${local.prefix}"
   deletion_window_in_days = 30
   enable_key_rotation     = true
-  prevent_destroy         = false
   prefix                  = local.prefix
 
   key_policy = [
@@ -666,7 +665,6 @@ module "ssh_rdp_function" {
   memory_size                 = 256
   timeout                     = 60
   log_format                  = "JSON"
-  deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
   table_arn                   = module.dynamodb.table_arn
@@ -724,7 +722,6 @@ module "cloudtrail_tamper_function" {
   memory_size                 = 256
   timeout                     = 60
   log_format                  = "JSON"
-  deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
   target_role_arns            = []
@@ -808,7 +805,6 @@ module "crypto_mining_function" {
   memory_size                 = 256
   timeout                     = 120
   log_format                  = "JSON"
-  deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
   table_arn                   = module.dynamodb.table_arn
@@ -861,7 +857,6 @@ module "central_cloudwatch_dashboard" {
   source         = "../../modules/cloudwatch_dashboard"
   prefix         = local.prefix
   dashboard_name = "central-dashboard"
-  region         = var.region
 
   dashboard_body = jsonencode({
     widgets = [
