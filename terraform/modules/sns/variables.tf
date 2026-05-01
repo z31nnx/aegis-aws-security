@@ -10,10 +10,6 @@ variable "protocol" {
 variable "kms_key_arn" {
   type = string
 }
-variable "description" {
-  type    = string
-  default = null
-}
 variable "emails" {
   type    = list(string)
   default = []

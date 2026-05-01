@@ -31,10 +31,6 @@ variable "log_format" {
   type    = string
   default = "JSON"
 }
-variable "deletion_protection_enabled" {
-  type    = bool
-  default = false
-}
 variable "log_group_class" {
   type    = string
   default = "STANDARD"

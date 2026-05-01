@@ -1,5 +1,6 @@
 data "archive_file" "zip" {
   type        = "zip"
+  provider    = aws
   source_file = "../../lambda-functions/${var.function_name}.py"
   output_path = "../../lambda-functions/.build/${var.function_name}.zip"
 }

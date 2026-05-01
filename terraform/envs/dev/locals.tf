@@ -13,5 +13,4 @@ locals {
   region     = data.aws_region.current.region
 
   bucket_arn = module.central-logs-bucket.bucket_arn
-  bucket_id  = module.central-logs-bucket.bucket_id
 }

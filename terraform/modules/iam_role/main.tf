@@ -26,6 +26,7 @@ data "aws_iam_policy_document" "trust" {
 
 resource "aws_iam_role" "role" {
   name                 = "${var.prefix}-${var.role_name}"
+  description          = var.description
   assume_role_policy   = data.aws_iam_policy_document.trust.json
   max_session_duration = var.max_session_duration
   path                 = var.path

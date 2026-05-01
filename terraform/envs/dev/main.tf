@@ -790,7 +790,7 @@ module "cloudtrail_tamper_event_rule" {
     source        = ["aws.cloudtrail"]
     "detail-type" = ["AWS API Call via CloudTrail"]
     detail = {
-      eventSource = ["cloudtrail.amazonaws.com", "${module.main_trail.cloudtrail_arn}"]
+      eventSource = ["cloudtrail.amazonaws.com", module.main_trail.cloudtrail_arn]
       eventName = [
         "StopLogging",
         "DeleteTrail",

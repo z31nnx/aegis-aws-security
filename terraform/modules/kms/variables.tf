@@ -13,10 +13,6 @@ variable "deletion_window_in_days" {
   type    = number
   default = 30
 }
-variable "prevent_destroy" {
-  type    = bool
-  default = true
-}
 variable "key_alias" {
   type = string
 }
