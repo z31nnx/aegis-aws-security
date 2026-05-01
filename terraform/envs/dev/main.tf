@@ -659,19 +659,19 @@ module "event_bus" {
 }
 
 module "ssh_rdp_function" {
-  source                      = "../../modules/lambda"
-  function_name               = "ssh_rdp_function"
-  runtime                     = "python3.14"
-  memory_size                 = 256
-  timeout                     = 60
-  log_format                  = "JSON"
-  log_group_class             = "STANDARD"
-  retention_in_days           = 7
-  table_arn                   = module.dynamodb.table_arn
-  target_role_arns            = var.target_role_arns
-  sns_topic_arn               = module.sns_medium.topic_arn
-  kms_key_arn                 = module.main_key.key_arn
-  prefix                      = local.prefix
+  source            = "../../modules/lambda"
+  function_name     = "ssh_rdp_function"
+  runtime           = "python3.14"
+  memory_size       = 256
+  timeout           = 60
+  log_format        = "JSON"
+  log_group_class   = "STANDARD"
+  retention_in_days = 7
+  table_arn         = module.dynamodb.table_arn
+  target_role_arns  = var.target_role_arns
+  sns_topic_arn     = module.sns_medium.topic_arn
+  kms_key_arn       = module.main_key.key_arn
+  prefix            = local.prefix
   lambda_environment_variables = {
     "REGION"           = var.region
     "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
@@ -716,19 +716,19 @@ module "ssh_rdp_event_rule" {
 }
 
 module "cloudtrail_tamper_function" {
-  source                      = "../../modules/lambda"
-  function_name               = "cloudtrail_tamper_function"
-  runtime                     = "python3.14"
-  memory_size                 = 256
-  timeout                     = 60
-  log_format                  = "JSON"
-  log_group_class             = "STANDARD"
-  retention_in_days           = 7
-  target_role_arns            = []
-  table_arn                   = module.dynamodb.table_arn
-  sns_topic_arn               = module.sns_critical.topic_arn
-  kms_key_arn                 = module.main_key.key_arn
-  prefix                      = local.prefix
+  source            = "../../modules/lambda"
+  function_name     = "cloudtrail_tamper_function"
+  runtime           = "python3.14"
+  memory_size       = 256
+  timeout           = 60
+  log_format        = "JSON"
+  log_group_class   = "STANDARD"
+  retention_in_days = 7
+  target_role_arns  = []
+  table_arn         = module.dynamodb.table_arn
+  sns_topic_arn     = module.sns_critical.topic_arn
+  kms_key_arn       = module.main_key.key_arn
+  prefix            = local.prefix
   lambda_environment_variables = {
     REGION                        = var.region
     ENVIRONMENT                   = var.environment
@@ -799,19 +799,19 @@ module "cloudtrail_tamper_event_rule" {
 }
 
 module "crypto_mining_function" {
-  source                      = "../../modules/lambda"
-  function_name               = "crypto_mining_function"
-  runtime                     = "python3.14"
-  memory_size                 = 256
-  timeout                     = 120
-  log_format                  = "JSON"
-  log_group_class             = "STANDARD"
-  retention_in_days           = 7
-  table_arn                   = module.dynamodb.table_arn
-  target_role_arns            = var.target_role_arns
-  sns_topic_arn               = module.sns_high.topic_arn
-  kms_key_arn                 = module.main_key.key_arn
-  prefix                      = local.prefix
+  source            = "../../modules/lambda"
+  function_name     = "crypto_mining_function"
+  runtime           = "python3.14"
+  memory_size       = 256
+  timeout           = 120
+  log_format        = "JSON"
+  log_group_class   = "STANDARD"
+  retention_in_days = 7
+  table_arn         = module.dynamodb.table_arn
+  target_role_arns  = var.target_role_arns
+  sns_topic_arn     = module.sns_high.topic_arn
+  kms_key_arn       = module.main_key.key_arn
+  prefix            = local.prefix
 }
 
 module "test_sg" {
