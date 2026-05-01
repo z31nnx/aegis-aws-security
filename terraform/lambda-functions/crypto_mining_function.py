@@ -113,6 +113,7 @@ def snapshot_instance(ec2, instance) -> list:
                 Description=f"GuardDuty crypto remediation snapshot for {iid}",
                 TagSpecifications=[
                     {
+                        "ResourceType": "snapshot",
                         "Tags": [
                             {"Key": "Name", "Value": f"{iid}-{volume_id}-CryptoMiningSnapshot"},
                             {"Key": "SourceId", "Value": iid},
@@ -221,7 +222,7 @@ def guardduty_event(detail) -> dict:
 def build_subject() -> str:
     return f"[Aegis/High] GuardDuty Crypto Mining Alert"
 
-def build_message(account, region, event, time, ip, findings) -> str:
+def build_message(account, region, event, time, findings) -> str:
     return f"""GuardDuty Findings Detected
 
 Finding ID:
@@ -231,7 +232,6 @@ Event Name: {event}
 Account ID: {account}
 Region: {region}
 Time (UTC): {time}
-Source IP: {ip},
 
 Findings: {json.dumps(findings, indent=2)}
 
@@ -245,7 +245,7 @@ Recommended Actions:
 
 def publish_sns(sns, arn, subject, message) -> bool:
     try:
-        sns.publish_sns(
+        sns.publish(
             TopicArn=arn,
             Subject=subject,
             Message=message
@@ -266,21 +266,27 @@ def lambda_handler(event, context):
     
     event = event or {}
     detail = event.get("detail", {})
-    event_name = detail.get("eventName", "Uknown")
     event_type = detail.get("type", "Unknown")
-    ip = detail.get("sourceIpAddress", "Unknown")
+    severity = event.get("severity")
+    description = event.get("description")
     guardduty = guardduty_event(detail) or {}
     iid = guardduty.get("InstanceId", "Unknown")
     
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
-    instance = describe_instance(ec2=ec2, iid="i-068b9faa0d8284eb1")
-    quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id="sg-029c55e700cb433dc")
+    instance = describe_instance(ec2=ec2, iid=iid)
+    tag = tag_instance(ec2=ec2, iid=iid)
+    snapshot = snapshot_instance(ec2=ec2, instance=instance)
+    profile = get_iam_profile_association(ec2=ec2, iid=iid)
+    quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id=QUARANTINE_SG)
     
     results.append({
         "Account": source_account,
         "Instance": instance,
+        "Tag": tag,
+        "Snapshot": snapshot,
+        "Profile": profile,
         "Quarantined": quarantine
     })
     
@@ -290,9 +296,73 @@ def lambda_handler(event, context):
         "Results": results
     }
     
+    logger.info("Audit complete")
+    
     return {
         "statusCode": 200,
         "body": json.dumps(body)
     }
-    
-lambda_handler(event=None, context=None)
+
+event = {
+    "version": "0",
+    "id": "test-guardduty-crypto-finding",
+    "detail-type": "GuardDuty Finding",
+    "source": "aws.guardduty",
+    "account": "111122223333",
+    "time": "2026-04-29T12:00:00Z",
+    "region": "us-east-1",
+    "resources": [],
+    "detail": {
+        "schemaVersion": "2.0",
+        "accountId": "111122223333",
+        "region": "us-east-1",
+        "partition": "aws",
+        "id": "test-finding-id",
+        "arn": "arn:aws:guardduty:us-east-1:111122223333:detector/test-detector-id/finding/test-finding-id",
+        "type": "CryptoCurrency:EC2/BitcoinTool.B!DNS",
+        "resource": {
+            "resourceType": "Instance",
+            "instanceDetails": {
+                "instanceId": "i-068b9faa0d8284eb1",
+                "instanceType": "t2.micro",
+                "launchTime": "2026-04-29T11:30:00Z",
+                "platform": None,
+                "productCodes": [],
+                "iamInstanceProfile": {
+                    "arn": "arn:aws:iam::111122223333:instance-profile/test-instance-profile",
+                    "id": "AIPAEXAMPLE"
+                },
+                "networkInterfaces": [],
+                "tags": [
+                    {
+                        "key": "Name",
+                        "value": "aegis-test-instance"
+                    }
+                ]
+            }
+        },
+        "service": {
+            "serviceName": "guardduty",
+            "detectorId": "test-detector-id",
+            "action": {
+                "actionType": "DNS_REQUEST",
+                "dnsRequestAction": {
+                    "domain": "pool.example-mining-domain.com",
+                    "protocol": "UDP",
+                    "blocked": False
+                }
+            },
+            "eventFirstSeen": "2026-04-29T11:55:00Z",
+            "eventLastSeen": "2026-04-29T11:59:00Z",
+            "archived": False,
+            "count": 1
+        },
+        "severity": 8,
+        "createdAt": "2026-04-29T12:00:00Z",
+        "updatedAt": "2026-04-29T12:00:00Z",
+        "title": "EC2 instance is querying a domain name associated with cryptocurrency activity",
+        "description": "EC2 instance i-068b9faa0d8284eb1 is querying a domain name associated with cryptocurrency activity."
+    }
+}
+
+lambda_handler(event, context=None)
