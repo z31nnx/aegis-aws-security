@@ -669,6 +669,7 @@ module "ssh_rdp_function" {
   deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
+  table_arn                   = module.dynamodb.table_arn
   target_role_arns            = var.target_role_arns
   sns_topic_arn               = module.sns_medium.topic_arn
   kms_key_arn                 = module.main_key.key_arn
@@ -727,6 +728,7 @@ module "cloudtrail_tamper_function" {
   log_group_class             = "STANDARD"
   retention_in_days           = 7
   target_role_arns            = []
+  table_arn                   = module.dynamodb.table_arn
   sns_topic_arn               = module.sns_critical.topic_arn
   kms_key_arn                 = module.main_key.key_arn
   prefix                      = local.prefix
@@ -809,6 +811,7 @@ module "crypto_mining_function" {
   deletion_protection_enabled = false
   log_group_class             = "STANDARD"
   retention_in_days           = 7
+  table_arn                   = module.dynamodb.table_arn
   target_role_arns            = var.target_role_arns
   sns_topic_arn               = module.sns_high.topic_arn
   kms_key_arn                 = module.main_key.key_arn

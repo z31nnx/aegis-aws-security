@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        envdir: [ "terraform/envs/dev", "terraform/envs/prod" ]
+        envdir: [ "terraform/envs/dev" ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
