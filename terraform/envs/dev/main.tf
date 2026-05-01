@@ -199,6 +199,43 @@ module "main_key" {
       ]
     },
     {
+      sid    = "AllowDynamoDBFindingsTableEncryption"
+      effect = "Allow"
+      actions = [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey",
+        "kms:CreateGrant"
+      ]
+
+      principals = {
+        type        = "Service"
+        identifiers = ["dynamodb.amazonaws.com"]
+      }
+
+      resources = ["*"]
+
+      conditions = [
+        {
+          test     = "StringEquals"
+          variable = "kms:ViaService"
+          values   = ["dynamodb.${local.region}.amazonaws.com"]
+        },
+        {
+          test     = "StringEquals"
+          variable = "kms:EncryptionContext:aws:dynamodb:tableName"
+          values   = ["${local.prefix}-findings"]
+        },
+        {
+          test     = "StringEquals"
+          variable = "aws:SourceAccount"
+          values   = [local.account_id]
+        }
+      ]
+    },
+    {
       sid     = "AllowEventBridgeBus"
       effect  = "Allow"
       actions = ["kms:GenerateDataKey*", "kms:Encrypt", "kms:Decrypt", "kms:DescribeKey"]
@@ -377,6 +414,30 @@ module "main_trail" {
   }
   prefix     = local.prefix
   depends_on = [module.central-logs-bucket]
+}
+
+module "dynamodb" {
+  source              = "../../modules/dynamodb"
+  table_name          = "findings"
+  billing_mode        = "PAY_PER_REQUEST"
+  hash_key            = "finding_id"
+  range_key           = null
+  deletion_protection = false
+  ttl = {
+    enabled        = true
+    attribute_name = "TimeToExist"
+  }
+  server_side_encryption = {
+    enabled     = true
+    kms_key_arn = module.main_key.key_arn
+  }
+  attribute = {
+    finding_id = {
+      name = "finding_id"
+      type = "S"
+    }
+  }
+  prefix = local.prefix
 }
 
 module "guardduty" {

@@ -62,6 +62,13 @@ data "aws_iam_policy_document" "policy" {
   }
 
   statement {
+    sid       = "AllowDynamoDBFindingStateTableAccess"
+    effect    = "Allow"
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem"]
+    resources = [var.table_arn]
+  }
+
+  statement {
     sid       = "UseKMSForEncryptedSNS"
     effect    = "Allow"
     actions   = ["kms:GenerateDataKey*", "kms:Decrypt", "kms:DescribeKey"]

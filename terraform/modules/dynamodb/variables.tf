@@ -11,33 +11,37 @@ variable "billing_mode" {
   type = string
 }
 variable "read_capacity" {
-  type = number
+  type    = number
+  default = null
 }
 variable "write_capacity" {
-  type = number
+  type    = number
+  default = null
 }
 variable "hash_key" {
-  type = string
+  type    = string
+  default = null
 }
 variable "range_key" {
-  type = string
+  type    = string
+  default = null
 }
-variable "servver_side_encryption" {
+variable "server_side_encryption" {
   type = object({
-    enabled = bool
+    enabled     = bool
     kms_key_arn = string
   })
 }
 variable "ttl" {
   type = object({
     attribute_name = string
-    enabled = bool
+    enabled        = bool
   })
 }
 variable "attribute" {
-  type = optional(list(object({
-    name = string
-    type = string 
-  })))
-  default = []
+  type = map(object({
+    name = optional(string)
+    type = optional(string)
+  }))
+  default = {}
 }
