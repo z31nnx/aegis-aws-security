@@ -27,11 +27,11 @@ def log_client_error(e: ClientError, where: str) -> None:
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
-def assume_role(role_arn, session_name) -> boto3.Session: 
+def assume_role(role_arn) -> boto3.Session: 
     try:
         creds = sts.assume_role(
             RoleArn=role_arn,
-            RoleSessionName=session_name
+            RoleSessionName="AegisSecurity"
         )["Credentials"]
     
         return boto3.Session(
@@ -278,7 +278,8 @@ def lambda_handler(event, context):
     if TARGET_ROLE_ARNS:
         for role_arn in TARGET_ROLE_ARNS:
             try:
-                session = assume_role(role_arn=role_arn, session_name="AegisSecurity")
+                logger.info(f"Multi account: Assuming target roles")
+                session = assume_role(role_arn=role_arn)
                 target_account = session.client("sts").get_caller_identity()["Account"]
                 logger.info(f"Scanning account: {target_account}")
                 target_ec2 = session.client("ec2", region_name=REGION)

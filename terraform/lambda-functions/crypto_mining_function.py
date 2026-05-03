@@ -14,10 +14,30 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
+sts = boto3.client("sts", region_name=REGION)
+sns = boto3.client("sns", region_name=REGION)
+
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
     logger.exception(f"Error caught in {where}: {code} - {msg}")
+    
+def assume_role(role_arn) -> boto3.Session:
+    try:
+        creds = sts.assume_role(
+            RoleArn=role_arn,
+            RoleSessionName="AegisSecurity"
+        )["Credentials"]
+    
+        return boto3.Session(
+            aws_access_key_id=creds["AccessKeyId"],
+            aws_secret_access_key=creds["SecretAccessKey"],
+            aws_session_token=creds["SessionToken"],
+            region_name=REGION
+        )
+    except ClientError as e:
+        log_client_error(e, "assume_role")
+        raise
     
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -56,12 +76,6 @@ def describe_instance(ec2, iid) -> list[dict]:
         log_client_error(e, "describe_instance")
         findings.append({
             "InstanceId": iid,
-            "State": state,
-            "VpcId": vpc_id,
-            "SubnetId": subnet_id,
-            "IAMProfile": iam_profile,
-            "VolumeId": volume_id,
-            "GroupId": group_id,
             "Action": "DescribeInstance",
             "Status": "Failed",
             "Error": e.response["Error"].get("Message", "No message")
@@ -222,7 +236,7 @@ def guardduty_event(detail) -> dict:
 def build_subject() -> str:
     return f"[Aegis/High] GuardDuty Crypto Mining Alert"
 
-def build_message(description, finding_id, finding_type, severity, account, region, time, body) -> str:
+def build_message(description, finding_id, finding_type, severity, region, time, body) -> str:
     return f"""GuardDuty Findings Detected
 
 Description: {description}
@@ -230,7 +244,6 @@ Description: {description}
 Finding ID: {finding_id}
 Finding type: {finding_type}
 Severity: {severity}
-Account ID: {account}
 Region: {region}
 Time (UTC): {time}
 
@@ -244,7 +257,7 @@ Recommended Actions:
 - Escalate if needed.
 """    
 
-def publish_sns(sns, arn, subject, message) -> bool:
+def publish_sns(arn, subject, message) -> bool:
     try:
         sns.publish(
             TopicArn=arn,
@@ -261,40 +274,78 @@ def lambda_handler(event, context):
     logger.info(f"Event received: {json.dumps(event)}")
     logger.info(f"Starting audit...")
     
-    sts = boto3.client("sts", region_name=REGION)
-    sns = boto3.client("sns", region_name=REGION)
-    ec2 = boto3.client("ec2", region_name=REGION)
-    
     event = event or {}
     detail = event.get("detail", {})
     finding_type = detail.get("type", "Unknown")
     finding_id = event.get("id")
-    severity = event.get("severity")
-    description = event.get("description")
+    severity = detail.get("severity")
+    description = detail.get("description")
     guardduty = guardduty_event(detail) or {}
     iid = guardduty.get("InstanceId", "Unknown")
+    region = detail.get("region") or event.get("region") or REGION
+    finding_account = detail.get("accountId") or event.get("account")
     time = now_utc_iso()
     
-
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
-    instance = describe_instance(ec2=ec2, iid=iid)
-    tag = tag_instance(ec2=ec2, iid=iid)
-    snapshot = snapshot_instance(ec2=ec2, instance=instance)
-    profile = get_iam_profile_association(ec2=ec2, iid=iid)
-    quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id=QUARANTINE_SG)
+
+    if source_account == finding_account:
+        ec2 = boto3.client("ec2", region_name=region)
+
+        instance = describe_instance(ec2=ec2, iid=iid)
+        tag = tag_instance(ec2=ec2, iid=iid)
+        snapshot = snapshot_instance(ec2=ec2, instance=instance)
+        profile = get_iam_profile_association(ec2=ec2, iid=iid)
+        quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id=QUARANTINE_SG)
+        
+        results.append({
+            "Account": source_account,
+            "Instance": instance,
+            "Tag": tag,
+            "Snapshot": snapshot,
+            "Profile": profile,
+            "Quarantined": quarantine
+        })
+    else:
+        logger.info(f"Skipping source account remediation. Finding belongs to account {finding_account}, source account is {source_account}")
     
-    results.append({
-        "Account": source_account,
-        "Instance": instance,
-        "Tag": tag,
-        "Snapshot": snapshot,
-        "Profile": profile,
-        "Quarantined": quarantine
-    })
-    
-    print(results)
+    if TARGET_ROLE_ARNS:
+        for role_arn in TARGET_ROLE_ARNS:
+            role_account = role_arn.split(":")[4]
+
+            if role_account != finding_account:
+                logger.info(f"Skipping role {role_arn}. Finding belongs to account {finding_account}")
+                continue
+
+            try:
+                logger.info(f"Multi account: Assuming target role for account {finding_account}")
+                session = assume_role(role_arn=role_arn)
+                target_account = session.client("sts", region_name=region).get_caller_identity()["Account"]
+                target_ec2 = session.client("ec2", region_name=region)
+                
+                instance = describe_instance(ec2=target_ec2, iid=iid)
+                tag = tag_instance(ec2=target_ec2, iid=iid)
+                snapshot = snapshot_instance(ec2=target_ec2, instance=instance)
+                profile = get_iam_profile_association(ec2=target_ec2, iid=iid)
+                quarantine = quarantine_instance(ec2=target_ec2, instance=instance, sg_id=QUARANTINE_SG)
+                
+                results.append({
+                    "Account": target_account,
+                    "Instance": instance,
+                    "Tag": tag,
+                    "Snapshot": snapshot,
+                    "Profile": profile,
+                    "Quarantined": quarantine
+                })
+            except ClientError as e:
+                log_client_error(e, "lambda_handler")
+                results.append({
+                    "Status": "Error",
+                    "RoleArn": role_arn,
+                    "Reason": "AssumeRole or account processing failed"
+                })
+                continue
     
     body = {
         "Results": results
@@ -307,12 +358,14 @@ def lambda_handler(event, context):
         message = build_message(
             description=description, 
             finding_id=finding_id, 
+            finding_type=finding_type,
             severity=severity, 
-            account=source_account, 
-            region=REGION, 
+            region=region, 
             time=time, 
             body=body)
-        publish_sns(subject=subject, message=message)
+        publish_sns(arn=SNS_TOPIC_ARN, subject=subject, message=message)
+    
+    print(results)
     
     return {
         "statusCode": 200,
