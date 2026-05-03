@@ -6,8 +6,8 @@ import json
 import os 
 
 REGION = os.getenv("REGION", "us-east-1")
-SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
-QUARANTINE_SG = os.getenv("QUARANTINE_SG", "sg-029c55e700cb433dc")
+SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:179657021723:dev-aegis-high-alerts")
+QUARANTINE_SG = os.getenv("QUARANTINE_SG", "sg-0afbf8513f6a2edc2")
 TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 
 logger = logging.getLogger(__name__)
@@ -280,6 +280,8 @@ def lambda_handler(event, context):
     snapshot = snapshot_instance(ec2=ec2, instance=instance)
     profile = get_iam_profile_association(ec2=ec2, iid=iid)
     quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id=QUARANTINE_SG)
+    
+    
     
     results.append({
         "Account": source_account,

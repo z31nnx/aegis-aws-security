@@ -3,12 +3,12 @@ data "aws_region" "current" {}
 data "aws_partition" "current" {}
 
 module "ebs_encryption" {
-  source = "../../modules/ebs"
+  source = "../../../modules/ebs"
   enable = true
 }
 
 module "main_key" {
-  source                  = "../../modules/kms"
+  source                  = "../../../modules/kms"
   key_alias               = "central-key"
   description             = "Main key for ${local.prefix}"
   deletion_window_in_days = 30
@@ -265,7 +265,7 @@ module "main_key" {
 }
 
 module "central-logs-bucket" {
-  source        = "../../modules/s3"
+  source        = "../../../modules/s3"
   bucket_name   = "central-security-logs"
   force_destroy = true
   versioning    = "Enabled"
@@ -399,7 +399,7 @@ module "central-logs-bucket" {
 }
 
 module "main_trail" {
-  source                        = "../../modules/cloudtrail"
+  source                        = "../../../modules/cloudtrail"
   trail_name                    = var.trail_name
   bucket_id                     = module.central-logs-bucket.bucket_id
   s3_prefix                     = "cloudtrail"
@@ -416,7 +416,7 @@ module "main_trail" {
 }
 
 module "dynamodb" {
-  source              = "../../modules/dynamodb"
+  source              = "../../../modules/dynamodb"
   table_name          = "findings"
   billing_mode        = "PAY_PER_REQUEST"
   hash_key            = "finding_id"
@@ -440,7 +440,7 @@ module "dynamodb" {
 }
 
 module "guardduty" {
-  source                       = "../../modules/guardduty"
+  source                       = "../../../modules/guardduty"
   finding_publishing_frequency = "FIFTEEN_MINUTES"
   enable                       = true
   features = [
@@ -486,7 +486,7 @@ module "guardduty" {
 }
 
 module "sns_high" {
-  source      = "../../modules/sns"
+  source      = "../../../modules/sns"
   topic_name  = "high-alerts"
   kms_key_arn = module.main_key.key_arn
   emails      = var.sns_emails_high
@@ -495,7 +495,7 @@ module "sns_high" {
 }
 
 module "sns_medium" {
-  source      = "../../modules/sns"
+  source      = "../../../modules/sns"
   topic_name  = "medium-alerts"
   kms_key_arn = module.main_key.key_arn
   emails      = var.sns_emails_medium
@@ -504,7 +504,7 @@ module "sns_medium" {
 }
 
 module "sns_critical" {
-  source      = "../../modules/sns"
+  source      = "../../../modules/sns"
   topic_name  = "critical-alerts"
   kms_key_arn = module.main_key.key_arn
   emails      = var.sns_emails_critical
@@ -513,7 +513,7 @@ module "sns_critical" {
 }
 
 module "securityhub" {
-  source                    = "../../modules/security_hub"
+  source                    = "../../../modules/security_hub"
   region                    = null
   enable_default_standards  = true
   auto_enable_controls      = true
@@ -529,7 +529,7 @@ module "securityhub" {
 }
 
 module "config" {
-  source                        = "../../modules/config"
+  source                        = "../../../modules/config"
   config_name                   = "config"
   role_arn                      = module.config_role.role_arn
   all_supported                 = true
@@ -578,7 +578,7 @@ module "config" {
 }
 
 module "config_role" {
-  source               = "../../modules/iam_role"
+  source               = "../../../modules/iam_role"
   role_name            = "config-role"
   description          = "Main IAM role for Config"
   path                 = null
@@ -600,7 +600,7 @@ module "config_role" {
 }
 
 module "ssm_role" {
-  source               = "../../modules/iam_role"
+  source               = "../../../modules/iam_role"
   role_name            = "ssm-role"
   description          = "Main IAM role for SSM"
   path                 = "/"
@@ -627,7 +627,7 @@ module "ssm_role" {
 }
 
 module "ssm_sg" {
-  source      = "../../modules/sg"
+  source      = "../../../modules/sg"
   sg_name     = "ssm-sg"
   description = "Main Security Group of SSM in ${local.prefix}"
   vpc_id      = null
@@ -641,7 +641,7 @@ module "ssm_sg" {
 }
 
 module "quarantine_sg" {
-  source      = "../../modules/sg"
+  source      = "../../../modules/sg"
   sg_name     = "quarantine-sg"
   description = "Quarantined SG"
   vpc_id      = null
@@ -651,7 +651,7 @@ module "quarantine_sg" {
 }
 
 module "event_bus" {
-  source         = "../../modules/eventbridge_bus"
+  source         = "../../../modules/eventbridge_bus"
   event_bus_name = var.event_bus_name
   description    = "Central Aegis Bus for lambda automation"
   kms_key_arn    = module.main_key.key_arn
@@ -659,7 +659,7 @@ module "event_bus" {
 }
 
 module "ssh_rdp_function" {
-  source            = "../../modules/lambda"
+  source            = "../../../modules/lambda"
   function_name     = "ssh_rdp_function"
   runtime           = "python3.14"
   memory_size       = 256
@@ -698,7 +698,7 @@ module "ssh_rdp_function" {
 }
 
 module "ssh_rdp_event_rule" {
-  source         = "../../modules/eventbridge_rule"
+  source         = "../../../modules/eventbridge_rule"
   state          = "ENABLED"
   rule_name      = "ssh-rdp-rule"
   target_id      = "ToLambda"
@@ -716,7 +716,7 @@ module "ssh_rdp_event_rule" {
 }
 
 module "cloudtrail_tamper_function" {
-  source            = "../../modules/lambda"
+  source            = "../../../modules/lambda"
   function_name     = "cloudtrail_tamper_function"
   runtime           = "python3.14"
   memory_size       = 256
@@ -776,7 +776,7 @@ module "cloudtrail_tamper_function" {
 }
 
 module "cloudtrail_tamper_event_rule" {
-  source         = "../../modules/eventbridge_rule"
+  source         = "../../../modules/eventbridge_rule"
   state          = "ENABLED"
   rule_name      = "cloudtrail-tamper-rule"
   target_id      = "ToLambda"
@@ -799,7 +799,7 @@ module "cloudtrail_tamper_event_rule" {
 }
 
 module "crypto_mining_function" {
-  source            = "../../modules/lambda"
+  source            = "../../../modules/lambda"
   function_name     = "crypto_mining_function"
   runtime           = "python3.14"
   memory_size       = 256
@@ -815,7 +815,7 @@ module "crypto_mining_function" {
 }
 
 module "test_sg" {
-  source  = "../../modules/sg"
+  source  = "../../../modules/sg"
   prefix  = local.prefix
   sg_name = "test-ssh-rdp"
   ingress = {
@@ -852,9 +852,8 @@ module "test_sg" {
   }
 }
 
-
 module "central_cloudwatch_dashboard" {
-  source         = "../../modules/cloudwatch_dashboard"
+  source         = "../../../modules/cloudwatch_dashboard"
   prefix         = local.prefix
   dashboard_name = "central-dashboard"
 

@@ -1,7 +1,7 @@
 data "archive_file" "zip" {
   type        = "zip"
-  source_file = "../../lambda-functions/${var.function_name}.py"
-  output_path = "../../lambda-functions/.build/${var.function_name}.zip"
+  source_file = "../../../lambda-functions/${var.function_name}.py"
+  output_path = "../../../lambda-functions/.build/${var.function_name}.zip"
 }
 
 data "aws_iam_policy_document" "assume" {
