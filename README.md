@@ -24,7 +24,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 
 # Capabilities / Features
 - **Multi Account Remediation**: Scans source and target accounts, automatically remediate and notifies you reducing MTTR (Mean-Time-To-Response)
-- **Terraform modules**: Root module + 15 submodules 
+- **Terraform modules**: Security and testing stack root module + 16 submodules 
 - **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
 - **Centralized logging:** One S3 central logging bucket (BPA on, prefixes, versioning, SSE-KMS).
 - **KMS encryption:** Single KMS key to keep costs/simple and easier to rotate.
@@ -55,6 +55,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | Module         | Purpose                                               |
 |----------------|-------------------------------------------------------|
 | `s3/` | Reuseable S3 bucket for central logging (SSE-KMS + BPA) |
+| `ec2/` | Dedicated instance module for testing |
 | `cloudtrail/`      | Multi-Region CloudTrail with KMS encryption & log validation |
 | `config/`          | AWS Config rules baseline & recorder               |
 | `cloudwatch_dashboard/`          | Central dashboard for lambda automations            |
@@ -102,8 +103,8 @@ git clone https://github.com/z31nnx/aegis-aws-security.git
 # Configure your AWS profile // Provide Access Key ID, Secret Access Key, and default region
 aws configure
 
-# Change to an environment folder
-cd ./aegis-aws-security/terraform/envs/dev
+# Change to an environment security stack folder
+cd ./aegis-aws-security/terraform/envs/dev/security
 
 # Initialize
 terraform init
@@ -128,6 +129,26 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 | SSH open to world | Create SG with `0.0.0.0/0` or `::/0` on port 22 | Lambda removes ingress / quarantines SG; MED SNS alert |
 | RDP open to world | Create SG with `0.0.0.0/0` or `::/0` on port 3389 | Same as above |
 | Crypto mining findings | Go on GuardDuty console and **Generate sample findings** or custom test event for lambda | Lambda fires on GuardDuty CryptoCurrency events via EventBridge service; HIGH SNS alert |
+
+### For using testing stack:
+```bash
+# Change to the testing stack folder
+cd ./aegis-aws-security/terraform/envs/dev/security
+
+# Initialize
+terraform init
+
+# Validate configuration
+terraform validate
+
+# Plan & apply with your tfvars
+terraform plan 
+terraform apply 
+
+# When you want to nuke/destroy everything:
+terraform destroy
+```
+
 
 ## Runbook
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
