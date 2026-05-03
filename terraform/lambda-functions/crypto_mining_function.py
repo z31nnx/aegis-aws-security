@@ -222,18 +222,19 @@ def guardduty_event(detail) -> dict:
 def build_subject() -> str:
     return f"[Aegis/High] GuardDuty Crypto Mining Alert"
 
-def build_message(account, region, event, time, findings) -> str:
+def build_message(description, finding_id, finding_type, severity, account, region, time, body) -> str:
     return f"""GuardDuty Findings Detected
 
-Finding ID:
-Finding type:
-Severity: High
-Event Name: {event}
+Description: {description}
+
+Finding ID: {finding_id}
+Finding type: {finding_type}
+Severity: {severity}
 Account ID: {account}
 Region: {region}
 Time (UTC): {time}
 
-Findings: {json.dumps(findings, indent=2)}
+Findings: {json.dumps(body, indent=2)}
 
 Recommended Actions: 
 - Review the current findings.
@@ -266,12 +267,15 @@ def lambda_handler(event, context):
     
     event = event or {}
     detail = event.get("detail", {})
-    event_type = detail.get("type", "Unknown")
+    finding_type = detail.get("type", "Unknown")
+    finding_id = event.get("id")
     severity = event.get("severity")
     description = event.get("description")
     guardduty = guardduty_event(detail) or {}
     iid = guardduty.get("InstanceId", "Unknown")
+    time = now_utc_iso()
     
+
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
@@ -280,8 +284,6 @@ def lambda_handler(event, context):
     snapshot = snapshot_instance(ec2=ec2, instance=instance)
     profile = get_iam_profile_association(ec2=ec2, iid=iid)
     quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id=QUARANTINE_SG)
-    
-    
     
     results.append({
         "Account": source_account,
@@ -299,6 +301,18 @@ def lambda_handler(event, context):
     }
     
     logger.info("Audit complete")
+    
+    if SNS_TOPIC_ARN:
+        subject = build_subject()
+        message = build_message(
+            description=description, 
+            finding_id=finding_id, 
+            severity=severity, 
+            account=source_account, 
+            region=REGION, 
+            time=time, 
+            body=body)
+        publish_sns(subject=subject, message=message)
     
     return {
         "statusCode": 200,
