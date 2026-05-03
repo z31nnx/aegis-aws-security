@@ -648,6 +648,9 @@ module "quarantine_sg" {
   ingress     = {}
   egress      = {}
   prefix      = local.prefix
+  extra_tags = {
+    "Purpose" = "quarantine"
+  }
 }
 
 module "event_bus" {

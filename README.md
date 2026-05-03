@@ -157,6 +157,14 @@ terraform destroy
 ## Troubleshooting
 - **Terraform apply**: If you can't `terraform apply`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
 - **Multi-account**: Target accounts must have an **IAM role** that allows **lambda execution role** to assume that role with the necessary permission to remediate. **Default or custom event bus** in the target account should have rules that forward findings to the source (Aegis central security) event bus. Source account's event bus requires a resource based policy, that policy should allow the action of `"events:PutEvents"` from target account to source account's event bus. See permission -> [examples](./examples/) 
+- **Quarantine security group**: Aegis uses a dedicated quarantine security group for EC2 isolation. Each workload VPC in each target account must have its own quarantine security group. Security groups cannot be shared globally across accounts, regions, or VPCs. The quarantine SG must exist in the same account, region, and VPC as the compromised EC2 instance.
+
+  The quarantine SG should use the following tags so the Lambda can discover it:
+  ```hcl
+  Project = "aegis"
+  Purpose = "quarantine"
+  ```
+
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
 - **Security Hub not enabled**: If for some reason its off,  just enable via console (this is normal, the standards and product subscriptions are still applied). Otherwise config must be enabled in order for Security Hub to work.

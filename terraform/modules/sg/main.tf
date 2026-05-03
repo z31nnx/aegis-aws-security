@@ -4,9 +4,12 @@ resource "aws_security_group" "sg" {
   vpc_id                 = var.vpc_id
   revoke_rules_on_delete = true
 
-  tags = {
-    Name = "${var.prefix}-${var.sg_name}"
-  }
+  tags = merge(
+    var.extra_tags, 
+    {
+      Name = "${var.prefix}-${var.sg_name}"
+    }
+  )
 }
 
 resource "aws_vpc_security_group_ingress_rule" "ingress" {

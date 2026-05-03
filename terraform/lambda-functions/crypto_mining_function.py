@@ -6,8 +6,7 @@ import json
 import os 
 
 REGION = os.getenv("REGION", "us-east-1")
-SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:179657021723:dev-aegis-high-alerts")
-QUARANTINE_SG = os.getenv("QUARANTINE_SG", "sg-0afbf8513f6a2edc2")
+SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
 TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 
 logger = logging.getLogger(__name__)
@@ -83,6 +82,36 @@ def describe_instance(ec2, iid) -> list[dict]:
         
     return findings
 
+def get_quarantine_sg(ec2, vpc_id) -> str | None:
+    try:
+        response = ec2.describe_security_groups(
+            Filters=[
+                {
+                    "Name": "vpc-id",
+                    "Values": [vpc_id]
+                },
+                {
+                    "Name": "tag:Project",
+                    "Values": ["aegis"]
+                },
+                {
+                    "Name": "tag:Purpose",
+                    "Values": ["quarantine"]
+                }
+            ]
+        )
+
+        security_groups = response.get("SecurityGroups", [])
+
+        if not security_groups:
+            return None
+
+        return security_groups[0]["GroupId"]
+
+    except ClientError as e:
+        log_client_error(e, "get_quarantine_sg")
+        return None
+
 def tags() -> list[dict]:
     return [
         {"Key": "Aegis:Status", "Value": "Quarantined"},
@@ -138,7 +167,7 @@ def snapshot_instance(ec2, instance) -> list:
                         ]
                     }
                 ]
-                                )
+            )
             
             findings.append({
                 "InstanceId": iid,
@@ -180,13 +209,25 @@ def get_iam_profile_association(ec2, iid) -> str | None:
         log_client_error(e, "get_iam_profile_association")
         return None
 
-def quarantine_instance(ec2, instance, sg_id) -> list:
+def quarantine_instance(ec2, instance) -> list:
     findings = []
 
     for i in instance:
         iid = i["InstanceId"]
+        vpc_id = i["VpcId"]
         actions = []
         association_id = get_iam_profile_association(ec2, iid)
+        sg_id = get_quarantine_sg(ec2, vpc_id)
+
+        if not sg_id:
+            findings.append({
+                "InstanceId": iid,
+                "VpcId": vpc_id,
+                "Action": "FindQuarantineSG",
+                "Status": "Failed",
+                "Error": "No Aegis quarantine security group found in the instance VPC"
+            })
+            continue
     
         try:
             if association_id:
@@ -206,6 +247,8 @@ def quarantine_instance(ec2, instance, sg_id) -> list:
 
             findings.append({
                 "InstanceId": iid,
+                "VpcId": vpc_id,
+                "QuarantineSecurityGroup": sg_id,
                 "Actions": actions,
                 "Status": "Success"
             })
@@ -215,6 +258,8 @@ def quarantine_instance(ec2, instance, sg_id) -> list:
 
             findings.append({
                 "InstanceId": iid,
+                "VpcId": vpc_id,
+                "QuarantineSecurityGroup": sg_id,
                 "Actions": actions,
                 "Status": "Failed",
                 "Error": e.response["Error"].get("Message", "No message")
@@ -294,19 +339,28 @@ def lambda_handler(event, context):
         ec2 = boto3.client("ec2", region_name=region)
 
         instance = describe_instance(ec2=ec2, iid=iid)
-        tag = tag_instance(ec2=ec2, iid=iid)
-        snapshot = snapshot_instance(ec2=ec2, instance=instance)
-        profile = get_iam_profile_association(ec2=ec2, iid=iid)
-        quarantine = quarantine_instance(ec2=ec2, instance=instance, sg_id=QUARANTINE_SG)
-        
-        results.append({
-            "Account": source_account,
-            "Instance": instance,
-            "Tag": tag,
-            "Snapshot": snapshot,
-            "Profile": profile,
-            "Quarantined": quarantine
-        })
+
+        if not instance or instance[0].get("Status") == "Failed":
+            results.append({
+                "Account": source_account,
+                "Instance": instance,
+                "Status": "Skipped",
+                "Reason": "Instance not found or describe failed"
+            })
+        else:
+            tag = tag_instance(ec2=ec2, iid=iid)
+            snapshot = snapshot_instance(ec2=ec2, instance=instance)
+            profile = get_iam_profile_association(ec2=ec2, iid=iid)
+            quarantine = quarantine_instance(ec2=ec2, instance=instance)
+            
+            results.append({
+                "Account": source_account,
+                "Instance": instance,
+                "Tag": tag,
+                "Snapshot": snapshot,
+                "Profile": profile,
+                "Quarantined": quarantine
+            })
     else:
         logger.info(f"Skipping source account remediation. Finding belongs to account {finding_account}, source account is {source_account}")
     
@@ -325,10 +379,20 @@ def lambda_handler(event, context):
                 target_ec2 = session.client("ec2", region_name=region)
                 
                 instance = describe_instance(ec2=target_ec2, iid=iid)
+
+                if not instance or instance[0].get("Status") == "Failed":
+                    results.append({
+                        "Account": target_account,
+                        "Instance": instance,
+                        "Status": "Skipped",
+                        "Reason": "Instance not found or describe failed"
+                    })
+                    continue
+
                 tag = tag_instance(ec2=target_ec2, iid=iid)
                 snapshot = snapshot_instance(ec2=target_ec2, instance=instance)
                 profile = get_iam_profile_association(ec2=target_ec2, iid=iid)
-                quarantine = quarantine_instance(ec2=target_ec2, instance=instance, sg_id=QUARANTINE_SG)
+                quarantine = quarantine_instance(ec2=target_ec2, instance=instance)
                 
                 results.append({
                     "Account": target_account,

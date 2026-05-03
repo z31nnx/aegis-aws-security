@@ -13,6 +13,11 @@ variable "vpc_id" {
   default = null
 }
 
+variable "extra_tags" {
+  type = map(string)
+  default = {}
+}
+
 variable "ingress" {
   type = map(object({
     cidr_ipv4                    = optional(string)
