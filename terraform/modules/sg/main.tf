@@ -5,7 +5,7 @@ resource "aws_security_group" "sg" {
   revoke_rules_on_delete = true
 
   tags = merge(
-    var.extra_tags, 
+    var.extra_tags,
     {
       Name = "${var.prefix}-${var.sg_name}"
     }

@@ -149,7 +149,7 @@ def remediate_exposed_sg(ec2, sgs) -> list[dict]:
                 "Ipv4": sg["Ipv4"],
                 "Ipv6": sg["Ipv6"],
                 "Action": "RevokeSecurityGroupIngress",
-                "Status": "SUCCESS"
+                "Status": "Success"
             })
             
         except ClientError as e:
@@ -163,7 +163,7 @@ def remediate_exposed_sg(ec2, sgs) -> list[dict]:
                 "Ipv4": sg.get("Ipv4"),
                 "Ipv6": sg.get("Ipv6"),
                 "Action": "RevokeSecurityGroupIngress",
-                "Status": "FAILED",
+                "Status": "Failed",
                 "Error": e.response["Error"].get("Message", "Unknown remediation error")
             })
 
@@ -212,7 +212,7 @@ def actor_meta(detail) -> dict:
 def build_subject() -> str:
     return f"[Aegis/Medium] Security Group Exposure Alert"
 
-def build_message(region, event, time, ip, actor, findings) -> str:
+def build_message(region, event, time, ip, actor, body) -> str:
     return f"""Security Group exposure findings detected.
 
 Severity: Medium
@@ -223,7 +223,7 @@ Source IP: {ip}
 
 Actor: {json.dumps(actor, indent=2)}
 
-Findings: {json.dumps(findings, indent=2)}
+Findings: {json.dumps(body, indent=2)}
 
 Recommended Actions:
 - Review the actor and source IP that triggered the event.
@@ -321,7 +321,7 @@ def lambda_handler(event, context):
         time=time,
         ip=ip,
         actor=actor,
-        findings=body
+        body=body
     )
 
     publish_sns(

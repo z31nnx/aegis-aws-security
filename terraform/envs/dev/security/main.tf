@@ -815,6 +815,69 @@ module "crypto_mining_function" {
   sns_topic_arn     = module.sns_high.topic_arn
   kms_key_arn       = module.main_key.key_arn
   prefix            = local.prefix
+  lambda_environment_variables = {
+    REGION           = var.region
+    ENVIRONMENT      = var.environment
+    PROJECT          = var.project
+    OWNER            = var.owner
+    MANAGEDBY        = var.managedby
+    SNS_TOPIC_ARN    = module.sns_high.topic_arn
+    TARGET_ROLE_ARNS = jsonencode(var.target_role_arns)
+  }
+  trigger = {
+    statement_id = "AllowExecutionFromEventBridge"
+    action       = "lambda:InvokeFunction"
+    principal    = "events.amazonaws.com"
+    source_arn   = module.guardduty_crypto_event_rule.rule_arn
+  }
+
+  extra_statements = [
+    {
+      sid       = "DescribeEC2ForGuardDutyRemediation"
+      effect    = "Allow"
+      resources = ["*"]
+      actions = [
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeIamInstanceProfileAssociations"
+      ]
+    },
+    {
+      sid       = "RemediateGuardDutyCryptoInstance"
+      effect    = "Allow"
+      resources = ["*"]
+      actions = [
+        "ec2:CreateTags",
+        "ec2:CreateSnapshot",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:StopInstances",
+        "ec2:DisassociateIamInstanceProfile"
+      ]
+    }
+  ]
+}
+
+module "guardduty_crypto_event_rule" {
+  source         = "../../../modules/eventbridge_rule"
+  state          = "ENABLED"
+  rule_name      = "guardduty-crypto-mining-rule"
+  target_id      = "ToLambda"
+  event_bus_name = null
+  target_arn     = module.crypto_mining_function.function_arn
+  prefix         = local.prefix
+
+  event_pattern = jsonencode({
+    source        = ["aws.guardduty"]
+    "detail-type" = ["GuardDuty Finding"]
+
+    detail = {
+      type = [
+        {
+          prefix = "CryptoCurrency:EC2/"
+        }
+      ]
+    }
+  })
 }
 
 module "test_sg" {
