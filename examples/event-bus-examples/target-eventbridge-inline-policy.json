@@ -1,0 +1,11 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowForwardingEventsToCentralBus",
+      "Effect": "Allow",
+      "Action": "events:PutEvents",
+      "Resource": "arn:aws:events:us-east-1:CENTRAL_SECURITY_ACCOUNT_ID:event-bus/default"
+    }
+  ]
+}

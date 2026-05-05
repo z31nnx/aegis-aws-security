@@ -7,8 +7,9 @@ managedby   = "terraform"
 main_username = "your_user"
 role_arns     = ["target_account_iam_role_arns"]
 
-trail_name    = "central-security-trail"
+trail_name     = "central-security-trail"
 event_bus_name = "central-bus"
 
-sns_emails_medium = ["your_email@gmail.com"]
-sns_emails_high   = ["your_email@gmail.com"]
+sns_emails_medium   = ["your_email@gmail.com"]
+sns_emails_high     = ["your_email@gmail.com"]
+sns_emails_critical = ["your_email@gmail.com"]

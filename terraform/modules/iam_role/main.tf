@@ -36,6 +36,12 @@ resource "aws_iam_role" "role" {
   }
 }
 
+
+resource "aws_iam_instance_profile" "profile" {
+  name = "${var.prefix}-${var.role_name}"
+  role = aws_iam_role.role.name
+}
+
 data "aws_iam_policy_document" "policy" {
   count = length(var.policy) > 0 ? 1 : 0
   dynamic "statement" {

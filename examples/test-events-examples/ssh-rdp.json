@@ -1,0 +1,45 @@
+{
+  "detail-type": "AWS API Call via CloudTrail",
+  "source": "aws.ec2",
+  "account": "<REPLACE_ME>",
+  "region": "us-east-1",
+  "detail": {
+    "eventSource": "ec2.amazonaws.com",
+    "eventName": "AuthorizeSecurityGroupIngress",
+    "awsRegion": "us-east-1",
+    "userIdentity": {
+      "accountId": "<REPLACE_ME>"
+    },
+    "requestParameters": {
+      "groupId": "<sg-REPLACE_ME>",
+      "ipPermissions": {
+        "items": [
+          {
+            "ipProtocol": "tcp",
+            "fromPort": 22,
+            "toPort": 22,
+            "ipRanges": {
+              "items": [
+                {
+                  "cidrIp": "0.0.0.0/0"
+                }
+              ]
+            }
+          },
+          {
+            "ipProtocol": "tcp",
+            "fromPort": 3389,
+            "toPort": 3389,
+            "ipv6Ranges": {
+              "items": [
+                {
+                  "cidrIpv6": "::/0"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  }
+}
