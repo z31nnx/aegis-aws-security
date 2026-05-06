@@ -1075,3 +1075,45 @@ module "central_cloudwatch_dashboard" {
     ]
   })
 }
+
+
+module "test_sg" {
+  source      = "../../../modules/sg"
+  sg_name     = "test-ssh-rdp-sg"
+  description = "test for lambda"
+  vpc_id      = null
+  ingress = {
+    "ssh_ipv4" = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 22
+      to_port     = 22
+      ip_protocol = "tcp"
+    },
+    "ssh_ipv6" = {
+      cidr_ipv6   = "::/0"
+      from_port   = 22
+      to_port     = 22
+      ip_protocol = "tcp"
+    },
+    "rdp_ipv4" = {
+      cidr_ipv4   = "0.0.0.0/0"
+      from_port   = 3389
+      to_port     = 3389
+      ip_protocol = "tcp"
+    },
+    "rdp_ipv6" = {
+      cidr_ipv6   = "::/0"
+      from_port   = 3389
+      to_port     = 3389
+      ip_protocol = "tcp"
+    }
+    egress = {
+      cidr_ipv4   = "0.0.0.0/0"
+      ip_protocol = "-1"
+    }
+  }
+  prefix = local.prefix
+  extra_tags = {
+    Purpose = "test"
+  }
+}

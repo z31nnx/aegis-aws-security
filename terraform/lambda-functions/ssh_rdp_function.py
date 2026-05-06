@@ -172,17 +172,15 @@ def remediate_exposed_sg(ec2, sgs) -> list[dict]:
 def tags() -> list[dict]:
     return [
         {"Key": "Aegis:Status", "Value": "remediated"},
-        {"Key": "Aegis:LastFix", "Value": now_utc_iso()}
+        {"Key": "Aegis:LastFix", "Value": now_utc_iso()},
+        {"Key": "Aegis:Reason", "Value": "OpenToWorld"}
     ]
 
 def tag_sg(ec2, sgs) -> bool:
-    if not sgs:
-        return False
-    
     try:
         group_ids = []
         for sg in sgs:
-            if sg.get("Status") == "SUCCESS":
+            if sg.get("Status") == "Success":
                 group_ids.append(sg["GroupId"])
         
         if not group_ids:
@@ -314,21 +312,22 @@ def lambda_handler(event, context):
         "TotalFindings": total_findings
     }
     
-    subject = build_subject()
-    message = build_message(
-        region=REGION,
-        event=event_name,
-        time=time,
-        ip=ip,
-        actor=actor,
-        body=body
-    )
+    if SNS_TOPIC_ARN:
+        subject = build_subject()
+        message = build_message(
+            region=REGION,
+            event=event_name,
+            time=time,
+            ip=ip,
+            actor=actor,
+            body=body
+        )
 
-    publish_sns(
-        arn=SNS_TOPIC_ARN,
-        subject=subject,
-        message=message
-    )    
+        publish_sns(
+            arn=SNS_TOPIC_ARN,
+            subject=subject,
+            message=message
+        )    
 
     logger.info("Alert publish complete.")
     

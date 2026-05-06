@@ -30,7 +30,7 @@ module "test_sg" {
       ip_protocol = "tcp"
     },
     "rdp_ipv6" = {
-      cidr_ipv4   = "::/0"
+      cidr_ipv6   = "::/0"
       from_port   = 3389
       to_port     = 3389
       ip_protocol = "tcp"
@@ -57,5 +57,4 @@ module "test_instance" {
   prefix                      = local.prefix
   vpc_security_group_ids      = [data.terraform_remote_state.security.outputs.sg_ids.ssm_sg]
   iam_instance_profile        = data.terraform_remote_state.security.outputs.ssm_instance_profile
-
 }
