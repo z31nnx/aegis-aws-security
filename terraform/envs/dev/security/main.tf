@@ -871,51 +871,20 @@ module "guardduty_crypto_event_rule" {
     "detail-type" = ["GuardDuty Finding"]
 
     detail = {
+      resource = {
+        resourceType = ["Instance"]
+      }
+
       type = [
         {
           prefix = "CryptoCurrency:EC2/"
+        },
+        {
+          prefix = "Cryptocurrency:EC2/"
         }
       ]
     }
   })
-}
-
-module "test_sg" {
-  source  = "../../../modules/sg"
-  prefix  = local.prefix
-  sg_name = "test-ssh-rdp"
-  ingress = {
-    "ssh_ipv4" = {
-      cidr_ipv4   = "0.0.0.0/0"
-      from_port   = 22
-      to_port     = 22
-      ip_protocol = "tcp"
-    },
-    "ssh_ipv6" = {
-      cidr_ipv6   = "::/0"
-      from_port   = 22
-      to_port     = 22
-      ip_protocol = "tcp"
-    },
-    "rdp_ipv4" = {
-      cidr_ipv4   = "0.0.0.0/0"
-      from_port   = 3389
-      to_port     = 3389
-      ip_protocol = "tcp"
-    }
-    "rdp_ipv6" = {
-      cidr_ipv6   = "::/0"
-      from_port   = 3389
-      to_port     = 3389
-      ip_protocol = "tcp"
-    }
-  }
-  egress = {
-    "Allow_all" = {
-      ip_protocol = "-1"
-      cidr_ipv4   = "0.0.0.0/0"
-    }
-  }
 }
 
 module "central_cloudwatch_dashboard" {
@@ -941,7 +910,12 @@ module "central_cloudwatch_dashboard" {
             ["AWS/Lambda", "Invocations", "FunctionName", module.ssh_rdp_function.function_name],
             [".", "Errors", ".", "."],
             [".", "Throttles", ".", "."],
+
             ["AWS/Lambda", "Invocations", "FunctionName", module.cloudtrail_tamper_function.function_name],
+            [".", "Errors", ".", "."],
+            [".", "Throttles", ".", "."],
+
+            ["AWS/Lambda", "Invocations", "FunctionName", module.crypto_mining_function.function_name],
             [".", "Errors", ".", "."],
             [".", "Throttles", ".", "."]
           ]
@@ -964,7 +938,8 @@ module "central_cloudwatch_dashboard" {
           metrics = [
             ["AWS/Lambda", "Errors", "FunctionName", module.ssh_rdp_function.function_name, { id = "e1", visible = false }],
             ["AWS/Lambda", "Errors", "FunctionName", module.cloudtrail_tamper_function.function_name, { id = "e2", visible = false }],
-            [{ expression = "e1 + e2", label = "Total Errors" }]
+            ["AWS/Lambda", "Errors", "FunctionName", module.crypto_mining_function.function_name, { id = "e3", visible = false }],
+            [{ expression = "e1 + e2 + e3", label = "Total Errors" }]
           ]
         }
       },
@@ -985,7 +960,8 @@ module "central_cloudwatch_dashboard" {
           metrics = [
             ["AWS/Lambda", "Throttles", "FunctionName", module.ssh_rdp_function.function_name, { id = "t1", visible = false }],
             ["AWS/Lambda", "Throttles", "FunctionName", module.cloudtrail_tamper_function.function_name, { id = "t2", visible = false }],
-            [{ expression = "t1 + t2", label = "Total Throttles" }]
+            ["AWS/Lambda", "Throttles", "FunctionName", module.crypto_mining_function.function_name, { id = "t3", visible = false }],
+            [{ expression = "t1 + t2 + t3", label = "Total Throttles" }]
           ]
         }
       },
@@ -1004,7 +980,8 @@ module "central_cloudwatch_dashboard" {
           metrics = [
             ["AWS/Lambda", "Duration", "FunctionName", module.ssh_rdp_function.function_name, { id = "d1", visible = false }],
             ["AWS/Lambda", "Duration", "FunctionName", module.cloudtrail_tamper_function.function_name, { id = "d2", visible = false }],
-            [{ expression = "MAX([d1,d2])", label = "Max Duration" }]
+            ["AWS/Lambda", "Duration", "FunctionName", module.crypto_mining_function.function_name, { id = "d3", visible = false }],
+            [{ expression = "MAX([d1,d2,d3])", label = "Max Duration" }]
           ]
           yAxis = {
             left = {
