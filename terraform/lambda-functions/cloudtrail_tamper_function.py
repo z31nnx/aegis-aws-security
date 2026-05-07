@@ -187,7 +187,6 @@ def actor_meta(detail) -> dict:
     }
     
 def build_finding(remediation) -> dict:
-    
     return {
         "FindingType": "CloudTrailTamper",
         "Resource": {
@@ -206,12 +205,13 @@ def build_finding(remediation) -> dict:
 def build_subject() -> str:
     return "[Aegis/Critical] CloudTrail Tamper Alert"
 
-def build_message(region, event, time, ip, actor, findings) -> str:
+def build_message(region, event_name, event_id, time, ip, actor, findings) -> str:
     return f"""CloudTrail Tamper Findings Detected
 
 Severity: CRITICAL
 Region: {region}
-Event: {event}
+Event: {event_name}
+EventID: {event_id}
 Time (UTC): {time}
 Source IP: {ip}
 
@@ -245,6 +245,7 @@ def lambda_handler(event, context):
     event = event or {}
     detail = event.get("detail", {})
     event_name = detail.get("eventName", "Unknown")
+    event_id = detail.get("eventID", "Unknown")
     ip = detail.get("sourceIPAddress", "Unknown")
     actor = actor_meta(detail)
     time = now_utc_iso()
@@ -323,7 +324,8 @@ def lambda_handler(event, context):
         subject = build_subject()
         message = build_message(
             region=REGION,
-            event=event_name,
+            event_name=event_name,
+            event_id=event_id,
             time=time,
             ip=ip,
             actor=actor,

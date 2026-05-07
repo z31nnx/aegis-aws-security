@@ -210,12 +210,13 @@ def actor_meta(detail) -> dict:
 def build_subject() -> str:
     return f"[Aegis/Medium] Security Group Exposure Alert"
 
-def build_message(region, event, time, ip, actor, body) -> str:
+def build_message(region, event_name, event_id, time, ip, actor, body) -> str:
     return f"""Security Group exposure findings detected.
 
 Severity: Medium
 Region: {region}
-Event: {event}
+Event: {event_name}
+EventID: {event_id}
 Time (UTC): {time}
 Source IP: {ip}
 
@@ -249,6 +250,7 @@ def lambda_handler(event, context):
     event = event or {}
     detail = event.get("detail", {})
     event_name = detail.get("eventName", "Unknown")
+    event_id = detail.get("eventID", "Unknown")
     ip = detail.get("sourceIpAddress", "Unknown")
     time = now_utc_iso()
     actor = actor_meta(detail)
@@ -316,7 +318,8 @@ def lambda_handler(event, context):
         subject = build_subject()
         message = build_message(
             region=REGION,
-            event=event_name,
+            event_name=event_name,
+            event_id=event_id,
             time=time,
             ip=ip,
             actor=actor,
