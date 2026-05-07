@@ -60,6 +60,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | `cloudtrail/`      | Multi-Region CloudTrail with KMS encryption & log validation |
 | `config/`          | AWS Config rules baseline & recorder               |
 | `cloudwatch_dashboard/`          | Central dashboard for lambda automations            |
+| `dynamodb/` | Central event_id and findings_id table for idempotency |
 | `eventbridge_bus/`     | Main event bus for Lambda automation            |
 | `eventbridge_rule/`     | Event rules for Lambda automation            |
 | `eventbridge_schedule/`          | lambda schedules for functions               |

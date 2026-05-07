@@ -7,6 +7,7 @@ import os
 
 REGION = os.getenv("REGION", "us-east-1")
 SNS_TOPIC_ARN = os.getenv("SNS_TOPIC_ARN")
+TABLE_NAME = os.getenv("TABLE_NAME")
 TARGET_ROLE_ARNS = json.loads(os.getenv("TARGET_ROLE_ARNS", "[]"))
 
 logger = logging.getLogger(__name__)
