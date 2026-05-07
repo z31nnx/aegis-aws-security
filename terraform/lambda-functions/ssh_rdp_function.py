@@ -14,16 +14,51 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
-if not SNS_TOPIC_ARN:
-    raise RuntimeError("Required: missing SNS_TOPIC_ARN env")
+if not SNS_TOPIC_ARN or not TABLE_NAME:
+    raise RuntimeError("Required: missing SNS_TOPIC_ARN or TABLE_NAME env")
 
 sts = boto3.client("sts", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
+dynamodb = boto3.client("dynamodb", region_name=REGION)
 
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
     logger.exception(f"Error caught in {where}: {code} - {msg}")
+    
+def claim_finding(finding_id: str, item: dict) -> bool:
+    try:
+        dynamodb.put_item(
+            TableName=TABLE_NAME,
+            Item=item,
+            ConditionExpression="attribute_not_exists(finding_id)"
+        )
+        logger.info(f"Claimed finding: {finding_id}")
+        return True
+    
+    except ClientError as e:
+        log_client_error(e, "claim_finding")
+        raise
+    
+def build_item(event_id, event_name, region, source_ip, actor) -> dict:
+    finding_id = f"ssh_rdp_function#{event_id}"
+
+    return {
+        "finding_id": {"S": finding_id},
+        "event_id": {"S": event_id},
+        "event_name": {"S": event_name},
+        "region": {"S": region},
+        "source_ip": {"S": source_ip},
+        "actor": {
+            "M": {
+                "Type": {"S": str(actor.get("Type") or "Unknown")},
+                "Arn": {"S": str(actor.get("Arn") or "Unknown")},
+                "AccountId": {"S": str(actor.get("AccountId") or "Unknown")},
+                "User": {"S": str(actor.get("User") or "Unknown")}
+            }
+        },
+        "first_seen_at": {"S": now_utc_iso()}
+    }
     
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -211,7 +246,7 @@ def actor_meta(detail) -> dict:
 def build_subject() -> str:
     return f"[Aegis/Medium] Security Group Exposure Alert"
 
-def build_message(region, event_name, event_id, time, ip, actor, body) -> str:
+def build_message(region, event_name, event_id, time, ip, claimed, actor, body) -> str:
     return f"""Security Group exposure findings detected.
 
 Severity: Medium
@@ -219,6 +254,7 @@ Region: {region}
 Event: {event_name}
 EventID: {event_id}
 Time (UTC): {time}
+Claim: {claimed}
 Source IP: {ip}
 
 Actor: {json.dumps(actor, indent=2)}
@@ -251,10 +287,32 @@ def lambda_handler(event, context):
     event = event or {}
     detail = event.get("detail", {})
     event_name = detail.get("eventName", "Unknown")
-    event_id = detail.get("eventID", "Unknown")
+    event_id = detail.get("eventID")
     ip = detail.get("sourceIpAddress", "Unknown")
     time = now_utc_iso()
     actor = actor_meta(detail)
+
+    finding_id = f"ssh_rdp_function#{event_id}"
+
+    item = build_item(
+        event_id=event_id,
+        event_name=event_name,
+        region=REGION,
+        source_ip=ip,
+        actor=actor
+    )
+    
+    claimed = claim_finding(finding_id=finding_id, item=item)
+
+    if not claimed:
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "Message": "Duplicate finding skipped",
+                "FindingId": finding_id,
+                "EventId": event_id
+            })
+        }
     
     ec2 = boto3.client("ec2", region_name=REGION)
     source_account = sts.get_caller_identity()["Account"]
@@ -322,6 +380,7 @@ def lambda_handler(event, context):
             event_name=event_name,
             event_id=event_id,
             time=time,
+            claimed=claimed,
             ip=ip,
             actor=actor,
             body=body

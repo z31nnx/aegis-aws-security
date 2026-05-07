@@ -6,6 +6,11 @@ resource "aws_dynamodb_table" "dynamodb" {
   hash_key                    = var.hash_key
   range_key                   = var.range_key
   deletion_protection_enabled = var.deletion_protection
+  
+  point_in_time_recovery {
+    enabled = var.point_in_time_recovery.enabled
+    recovery_period_in_days = var.point_in_time_recovery.recovery_period_in_days
+  }
 
   server_side_encryption {
     enabled     = var.server_side_encryption.enabled

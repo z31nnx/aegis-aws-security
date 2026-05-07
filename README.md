@@ -24,7 +24,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 
 # Capabilities / Features
 - **Multi Account Remediation**: Scans source and target accounts, automatically remediate and notifies you reducing MTTR (Mean-Time-To-Response)
-- **Terraform modules**: Root module + 16 submodules 
+- **Terraform modules**: Root module + 18 submodules 
 - **Stack deployment**: Security and testing stacks. Core security stack for operations and a fully assembled testing stack for validations and testing.
 - **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
 - **Centralized logging:** One S3 central logging bucket (BPA on, prefixes, versioning, SSE-KMS).

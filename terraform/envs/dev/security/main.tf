@@ -422,6 +422,10 @@ module "dynamodb" {
   hash_key            = "finding_id"
   range_key           = null
   deletion_protection = false
+  point_in_time_recovery = {
+    enabled = true
+    recovery_period_in_days = 30
+  }
   ttl = {
     enabled        = true
     attribute_name = "TimeToExist"
@@ -676,9 +680,11 @@ module "ssh_rdp_function" {
   kms_key_arn       = module.main_key.key_arn
   prefix            = local.prefix
   lambda_environment_variables = {
-    "REGION"           = var.region
-    "SNS_TOPIC_ARN"    = module.sns_medium.topic_arn
-    "TARGET_ROLE_ARNS" = jsonencode(var.target_role_arns)
+    REGION           = var.region
+    SNS_TOPIC_ARN    = module.sns_medium.topic_arn
+    TABLE_NAME       = module.dynamodb.table_name
+    TARGET_ROLE_ARNS = jsonencode(var.target_role_arns)
+
   }
   trigger = {
     statement_id = "AllowExecutionFromEventBridge"
@@ -739,6 +745,7 @@ module "cloudtrail_tamper_function" {
     OWNER                         = var.owner
     MANAGEDBY                     = var.managedby
     SNS_TOPIC_ARN                 = module.sns_critical.topic_arn
+    "TABLE_NAME"                  = module.dynamodb.table_name
     TRAIL_ARN                     = module.main_trail.cloudtrail_arn
     TRAIL_NAME                    = module.main_trail.cloudtrail_name
     BUCKET_NAME                   = module.central-logs-bucket.bucket
@@ -822,6 +829,7 @@ module "crypto_mining_function" {
     OWNER            = var.owner
     MANAGEDBY        = var.managedby
     SNS_TOPIC_ARN    = module.sns_high.topic_arn
+    TABLE_NAME       = module.dynamodb.table_name
     TARGET_ROLE_ARNS = jsonencode(var.target_role_arns)
   }
   trigger = {

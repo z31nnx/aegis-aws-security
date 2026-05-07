@@ -26,6 +26,12 @@ variable "range_key" {
   type    = string
   default = null
 }
+variable "point_in_time_recovery" {
+  type = object({
+    enabled = bool
+    recovery_period_in_days = number
+  })
+}
 variable "server_side_encryption" {
   type = object({
     enabled     = bool
