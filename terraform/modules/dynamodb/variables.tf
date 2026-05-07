@@ -28,7 +28,7 @@ variable "range_key" {
 }
 variable "point_in_time_recovery" {
   type = object({
-    enabled = bool
+    enabled                 = bool
     recovery_period_in_days = number
   })
 }

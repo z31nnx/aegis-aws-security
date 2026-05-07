@@ -423,8 +423,8 @@ module "dynamodb" {
   range_key           = null
   deletion_protection = false
   point_in_time_recovery = {
-    enabled = true
-    recovery_period_in_days = 30
+    enabled                 = true
+    recovery_period_in_days = 35
   }
   ttl = {
     enabled        = true
