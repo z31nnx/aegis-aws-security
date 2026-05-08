@@ -18,14 +18,14 @@
 # Overview 
 A centralized AWS security foundation capable of multi-account detection and response, compliance (**AWS Config**), logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
-This project is designed to be deployed in a central security AWS cloud account and acts as a security operations platform with foundational security services baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The spine enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for near real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+This project is designed to be deployed in a central security AWS cloud account and acts as a security operations platform with foundational security services baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The platform enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for near real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
 Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default), operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera** and as a side with the adversary **MITRE ATT&CK Framework**.
 
 # Capabilities / Features
 - **Multi Account Remediation**: Scans source and target accounts, automatically remediate and notifies you reducing MTTR (Mean-Time-To-Response)
 - **Terraform modules**: Root module + 18 submodules 
-- **Stack deployment**: Security and testing stacks. Core security stack for operations and a fully assembled testing stack for validations and testing.
+- **Stack deployments**: Security and testing stacks. Core security stack for operations and a fully assembled testing stack for validations and testing.
 - **Hardened access:** Custom IAM role for SSM with IAM profile for EC2, lambda execution roles, and config role.  Sometimes `AWSServiceRoleForConfig` doesn't exist so the Terraform code fails, created custom config role for ease of use. Note that `AWSServiceRoleForConfig` is generally recommended for Config but for this project I made it optional for a one click `terraform apply` command. It uses AWS's managed service role policy. 
 - **Centralized logging:** One S3 central logging bucket (BPA on, prefixes, versioning, SSE-KMS).
 - **KMS encryption:** Single KMS key to keep costs/simple and easier to rotate.
@@ -39,7 +39,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - **AWS Foundational Security Best Practices v1.0.0**
   - **AWS Resource Tagging Standard v1.0.0**
 - **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but its part of the future plans. 
-- **Observability**: Dedicated cloudwatch dashboard with aggregated lambda automations and SNS alerts with metrics that uses errors, duration, throughput, and throttles. 
+- **Observability**: Dedicated CloudWatch dashboard with aggregated lambda automations and SNS alerts with metrics that uses errors, duration, throughput, and throttles. 
 
 ![dashboard](./docs/diagrams/dashboard.png)
 
@@ -74,7 +74,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 | `lambda/`          | Remediation Lambdas for security automation |
 | `security_hub/`    | Security Hub enablement + CIS + Resource & AFSBP standards    |
 | `sg/`              | Quarantine Security Group for crypto mining              |
-| `sns/`             | Encrypted SNS topics (HIGH / MED alerts)           |
+| `sns/`             | Encrypted SNS topics (CRITICAL / HIGH / MED alerts)           |
 | `iam_role/`             | IAM role for SSM access        |
 
 
@@ -138,7 +138,7 @@ For the full step-by-step testing guide with screenshots, see [docs/testing.md](
 ### For using testing stack:
 ```bash
 # Change to the testing stack folder
-cd ./aegis-aws-security/terraform/envs/dev/security
+cd ./aegis-aws-security/terraform/envs/dev/testing
 
 # Initialize
 terraform init
@@ -154,6 +154,16 @@ terraform apply
 terraform destroy
 ```
 
+## MITRE ATT&CK Alignment
+
+Aegis maps selected detection and remediation scenarios to cloud-relevant MITRE ATT&CK techniques. Find detailed tactics and techniques here: [MITRE ATT&CK](https://attack.mitre.org/)
+
+| Scenario | MITRE ATT&CK Alignment |
+|---|---|
+| [CloudTrail tampering](https://attack.mitre.org/techniques/T1685/002/) | Defense Impairment – T1562.008 Disable or Modify Cloud Logs |
+| [GuardDuty CryptoCurrency finding](https://attack.mitre.org/techniques/T1496/001/) | Impact – T1496 / T1496.001 Resource Hijacking / Compute Hijacking |
+| SSH/RDP exposed to world | Attack surface reduction; supports mitigation against Initial Access paths |
+
 ## Runbook
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
 
@@ -167,6 +177,7 @@ terraform destroy
   Project = "aegis"
   Purpose = "quarantine"
   ```
+- **Crypto mining generated findings**: Sample findings using GuardDuty gets published to a default event-bus in 5 minutes. It is not automatic, EventBridge invokes Lambda after successful event publish.
 - **Crypto Mining Test Event**: each test event using the id under detail must be unique or DynamoDB captures duplicated event. An example in [crypto-test](/examples/test-events-examples/crypto-mining.json) uses a json format test event, read through it carefully and apply new changes after every test. 
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
@@ -180,6 +191,7 @@ terraform destroy
 - Config automation via SSM documents. 
 - Custom Aegis event bus for layered architecture instead of just invoking lambda. 
 - Multi-region: Currently only works on region at a time. With plans to make multi someday. 
+- Multi-account only works for SSH-RDP and GuardDuty crypto-jacking.
 
 ## Costs & Environments
 - **Small security account**: Typically not much, just tens of USD/month for CloudTrail, Config evals, GuardDuty, and S3 logs. Depends on event/log volumes. 
