@@ -38,7 +38,7 @@ def claim_finding(finding_id: str, item: dict) -> bool:
     
     except ClientError as e:
         log_client_error(e, "claim_finding")
-        raise
+        return False
     
 def build_item(event_id, event_name, region, source_ip, actor) -> dict:
     finding_id = f"ssh_rdp_function#{event_id}"

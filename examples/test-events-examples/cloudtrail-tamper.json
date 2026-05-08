@@ -1,21 +1,21 @@
 {
   "detail-type": "AWS API Call via CloudTrail",
   "source": "aws.cloudtrail",
-  "account": "<REPLACE_ME>",
+  "account": "REPLACE_ME",
   "region": "us-east-1",
   "detail": {
     "eventSource": "cloudtrail.amazonaws.com",
     "eventName": "StopLogging",
     "awsRegion": "us-east-1",
     "userIdentity": {
-      "accountId": "<REPLACE_ME>"
+      "accountId": "REPLACE_ME"
     },
     "requestParameters": {
-      "name": "<TRAIL_NAME_REPLACE_ME>"
+      "name": "TRAIL_NAME_REPLACE_ME"
     },
     "resources": [
       {
-        "ARN": "arn:aws:cloudtrail:us-east-1:<REPLACE_ME>:trail/<TRAIL_NAME_REPLACE_ME>",
+        "ARN": "arn:aws:cloudtrail:us-east-1:REPLACE_ME:trail/TRAIL_NAME_REPLACE_ME",
         "type": "AWS::CloudTrail::Trail"
       }
     ]

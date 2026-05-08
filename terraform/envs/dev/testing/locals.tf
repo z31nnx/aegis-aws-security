@@ -5,5 +5,5 @@ locals {
     "Owner"       = var.owner
     "ManagedBy"   = var.managedby
   }
-  prefix = "${var.environment}-${var.project}"
+  prefix = "${var.project}-${var.environment}"
 }

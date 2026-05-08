@@ -1,17 +1,17 @@
 {
   "detail-type": "AWS API Call via CloudTrail",
   "source": "aws.ec2",
-  "account": "<REPLACE_ME>",
+  "account": "REPLACE_ME",
   "region": "us-east-1",
   "detail": {
     "eventSource": "ec2.amazonaws.com",
     "eventName": "AuthorizeSecurityGroupIngress",
     "awsRegion": "us-east-1",
     "userIdentity": {
-      "accountId": "<REPLACE_ME>"
+      "accountId": "REPLACE_ME"
     },
     "requestParameters": {
-      "groupId": "<sg-REPLACE_ME>",
+      "groupId": "sg-REPLACE_ME",
       "ipPermissions": {
         "items": [
           {

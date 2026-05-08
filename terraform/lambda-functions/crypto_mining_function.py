@@ -14,13 +14,43 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logging.basicConfig(level=logging.INFO)
 
+if not SNS_TOPIC_ARN or not TABLE_NAME:
+    raise RuntimeError("Required: missing SNS_TOPIC_ARN or TABLE_NAME env")
+
 sts = boto3.client("sts", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
+dynamodb = boto3.client("dynamodb", region_name=REGION)
 
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
     logger.exception(f"Error caught in {where}: {code} - {msg}")
+    
+def claim_finding(finding_id, item) -> bool:
+    try:
+        dynamodb.put_item(
+            TableName=TABLE_NAME,
+            Item=item,
+            ConditionExpression="attribute_not_exists(finding_id)"
+        )
+        logger.info(f"Claimed finding: {finding_id}")
+        return True
+    
+    except ClientError as e:
+        log_client_error(e, "claim_finding")
+        return False
+    
+def build_item(finding_id, finding_type, region, iid, severity, description) -> dict:
+    return {
+        "finding_id": {"S": finding_id},
+        "finding_type": {"S": finding_type},
+        "region": {"S": region},
+        "instance_id": {"S": str(iid or "Unknown")},
+        "severity": {"N": str(severity or 0)},
+        "description": {"S": str(description or "Unknown")},
+        "first_seen_at": {"S": now_utc_iso()}
+    }
+        
     
 def assume_role(role_arn) -> boto3.Session:
     try:
@@ -314,7 +344,7 @@ def publish_sns(arn, subject, message) -> bool:
     except ClientError as e:
         log_client_error(e, "publish_sns")
         return False
-    
+ 
 def lambda_handler(event, context):
     logger.info(f"Lambda started!")
     logger.info(f"Event received: {json.dumps(event)}")
@@ -323,7 +353,8 @@ def lambda_handler(event, context):
     event = event or {}
     detail = event.get("detail", {})
     finding_type = detail.get("type", "Unknown")
-    finding_id = event.get("id")
+    raw_finding_id = detail.get("id") or event.get("id")
+    event_id = event.get("id", "Unknown")
     severity = detail.get("severity")
     description = detail.get("description")
     guardduty = guardduty_event(detail) or {}
@@ -331,14 +362,56 @@ def lambda_handler(event, context):
     region = detail.get("region") or event.get("region") or REGION
     finding_account = detail.get("accountId") or event.get("account")
     time = now_utc_iso()
+
+    if not raw_finding_id:
+        logger.error("Missing GuardDuty finding id. Cannot safely build finding_id.")
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "Message": "Missing GuardDuty finding id. Skipping remediation."
+            })
+        }
+
+    if not iid or iid == "Unknown":
+        logger.error("Missing instance id. Cannot safely remediate finding.")
+        return {
+            "statusCode": 400,
+            "body": json.dumps({
+                "Message": "Missing instance id. Skipping remediation.",
+                "FindingId": raw_finding_id,
+                "EventId": event_id
+            })
+        }
     
     results = []
     
     source_account = sts.get_caller_identity()["Account"]
+    ec2 = boto3.client("ec2", region_name=region)
+    
+    finding_id = f"crypto_mining_function#{raw_finding_id}"
+
+    item = build_item(
+        finding_id=finding_id, 
+        finding_type=finding_type,
+        region=region,
+        iid=iid,
+        severity=severity,
+        description=description
+    )
+    
+    claimed = claim_finding(finding_id=finding_id, item=item)
+    
+    if not claimed:
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "Message": "Duplicate finding, skipped",
+                "FindingId": finding_id,
+                "EventId": event_id
+            })
+        }
 
     if source_account == finding_account:
-        ec2 = boto3.client("ec2", region_name=region)
-
         instance = describe_instance(ec2=ec2, iid=iid)
 
         if not instance or instance[0].get("Status") == "Failed":
@@ -427,7 +500,8 @@ def lambda_handler(event, context):
             severity=severity, 
             region=region, 
             time=time, 
-            body=body)
+            body=body
+        )
         publish_sns(arn=SNS_TOPIC_ARN, subject=subject, message=message)
     
     print(results)

@@ -34,11 +34,46 @@ logging.basicConfig(level=logging.INFO)
 
 sts = boto3.client("sts", region_name=REGION)
 sns = boto3.client("sns", region_name=REGION)
+dynamodb = boto3.client("dynamodb", region_name=REGION)
 
 def log_client_error(e: ClientError, where: str) -> None:
     code = e.response["Error"].get("Code", "Unknown code")
     msg = e.response["Error"].get("Message", "No message")
     logger.exception(f"Error caught in {where}: {code} - {msg}")
+
+def claim_finding(finding_id, item) -> bool:
+    try:
+        dynamodb.put_item(
+            TableName=TABLE_NAME,
+            Item=item,
+            ConditionExpression="attribute_not_exists(finding_id)"
+        )
+        logger.info(f"Claimed finding: {finding_id}")
+        return True
+    
+    except ClientError as e:
+        log_client_error(e, "claim_finding")
+        return False
+    
+def build_item(event_id, event_name, region, source_ip, actor) -> dict:
+    finding_id = f"cloudtrail_tamper_function#{event_id}"
+    
+    return {
+        "finding_id": {"S": finding_id},
+        "event_id": {"S": event_id},
+        "event_name": {"S": event_name},
+        "region": {"S": region},
+        "source_ip": {"S": source_ip},
+        "first_seen_at": {"S": now_utc_iso()},
+        "actor": {
+            "M": {
+                "Type": {"S": str(actor.get("Type", "Unknown"))},
+                "Arn": {"S": str(actor.get("Arn", "Unknown"))},
+                "AccountId": {"S": str(actor.get("AccountId", "Unknown"))},
+                "User": {"S": str(actor.get("User", "Unknown"))}
+            }
+        }
+    }
 
 def now_utc_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -206,7 +241,7 @@ def build_finding(remediation) -> dict:
 def build_subject() -> str:
     return "[Aegis/Critical] CloudTrail Tamper Alert"
 
-def build_message(region, event_name, event_id, time, ip, actor, findings) -> str:
+def build_message(region, event_name, event_id, time, source_ip, actor, findings) -> str:
     return f"""CloudTrail Tamper Findings Detected
 
 Severity: CRITICAL
@@ -214,7 +249,7 @@ Region: {region}
 Event: {event_name}
 EventID: {event_id}
 Time (UTC): {time}
-Source IP: {ip}
+Source IP: {source_ip}
 
 Actor: {json.dumps(actor, indent=2)}
 
@@ -247,9 +282,31 @@ def lambda_handler(event, context):
     detail = event.get("detail", {})
     event_name = detail.get("eventName", "Unknown")
     event_id = detail.get("eventID", "Unknown")
-    ip = detail.get("sourceIPAddress", "Unknown")
+    source_ip = detail.get("sourceIPAddress", "Unknown")
     actor = actor_meta(detail)
     time = now_utc_iso()
+    
+    finding_id = f"cloudtrail_tamper_function#{event_id}"
+    
+    item = build_item(
+        event_id=event_id,
+        event_name=event_name,
+        region=REGION,
+        source_ip=source_ip,
+        actor=actor
+        )
+    
+    claimed = claim_finding(finding_id=event_id, item=item)
+    
+    if not claimed:
+        return {
+            "statusCode": 200,
+            "body": json.dumps({
+                "Message": "Duplicate finding",
+                "FindingId": finding_id,
+                "EventId": event_id
+            })
+        }
     
     results = []
     
@@ -312,7 +369,6 @@ def lambda_handler(event, context):
     logging = is_logging(cloudtrail=cloudtrail)
     
     results.append({
-        "Account": source_account,
         "Logging": logging,
         "Findings": account_findings
     })
@@ -328,7 +384,7 @@ def lambda_handler(event, context):
             event_name=event_name,
             event_id=event_id,
             time=time,
-            ip=ip,
+            source_ip=source_ip,
             actor=actor,
             findings=results
         )

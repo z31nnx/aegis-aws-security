@@ -39,6 +39,8 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - **AWS Foundational Security Best Practices v1.0.0**
   - **AWS Resource Tagging Standard v1.0.0**
 - **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but its part of the future plans. 
+- **Observability**: Dedicated cloudwatch dashboard with aggregated lambda automations and SNS alerts with metrics that uses errors, duration, throughput, and throttles. 
+[dashboard](./docs/diagrams/dashboard.png)
 
 ## Table of Contents 
 - [Terraform Modules](#terraform-modules)
@@ -165,7 +167,7 @@ terraform destroy
   Project = "aegis"
   Purpose = "quarantine"
   ```
-
+- **Crypto Mining Test Event**: each test event using the id under detail must be unique or DynamoDB captures duplicated event. An example in [crypto-test](/examples/test-events-examples/crypto-mining.json) uses a json format test event, read through it carefully and apply new changes after every test. 
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
 - **Security Hub not enabled**: If for some reason its off,  just enable via console (this is normal, the standards and product subscriptions are still applied). Otherwise config must be enabled in order for Security Hub to work.
