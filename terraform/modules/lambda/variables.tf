@@ -1,56 +1,64 @@
-variable "name_prefix" {
+variable "prefix" {
   type = string
 }
-variable "sns_alerts_high_arn" {
+variable "function_name" {
   type = string
 }
-variable "sns_alerts_medium_arn" {
-  type = string
-}
-variable "project" {
-  type = string
-}
-variable "environment" {
-  type = string
-}
-variable "owner" {
-  type = string
-}
-variable "managedby" {
-  type = string
-}
-
-variable "cloudtrail_name" {
-  type = string
-}
-variable "central_logs_bucket" {
+variable "runtime" {
   type = string
 }
 variable "kms_key_arn" {
   type = string
 }
-variable "quarantine_sg_id" {
+variable "table_arn" {
   type = string
 }
-variable "aegis_lambda_dlq_arn" {
+variable "target_role_arns" {
+  type = list(string)
+}
+variable "sns_topic_arn" {
   type = string
 }
-
-variable "cloudtrail_tamper_function_exec_role_name" {
-  type = string
+variable "memory_size" {
+  type    = number
+  default = 256
 }
-variable "cloudtrail_tamper_function_name" {
-  type = string
+variable "timeout" {
+  type    = number
+  default = 30
 }
-variable "ssh_remediation_function_exec_role_name" {
-  type = string
+variable "log_format" {
+  type    = string
+  default = "JSON"
 }
-variable "ssh_remediation_function_name" {
-  type = string
+variable "log_group_class" {
+  type    = string
+  default = "STANDARD"
 }
-variable "crypto_quarantine_function_exec_role_name" {
-  type = string
+variable "retention_in_days" {
+  type    = number
+  default = 7
 }
-variable "crypto_quarantine_function_name" {
-  type = string
+variable "lambda_environment_variables" {
+  description = "Environment variables"
+  type        = map(string)
+  default     = {}
+}
+variable "extra_statements" {
+  type = list(object({
+    sid       = string
+    effect    = string
+    actions   = list(string)
+    resources = list(string)
+  }))
+  default = []
+}
+variable "trigger" {
+  type = object({
+    statement_id = string
+    action       = string
+    principal    = string
+    source_arn   = optional(string)
+  })
+  default = null
 }

@@ -1,0 +1,28 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TargetRoleEC2CryptoRemediationRead",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeIamInstanceProfileAssociations",
+        "sts:GetCallerIdentity"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TargetRoleEC2CryptoRemediationWrite",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateTags",
+        "ec2:CreateSnapshot",
+        "ec2:ModifyInstanceAttribute",
+        "ec2:StopInstances",
+        "ec2:DisassociateIamInstanceProfile"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

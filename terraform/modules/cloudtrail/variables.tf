@@ -1,12 +1,36 @@
-variable "name_prefix" {
+variable "prefix" {
   type = string
 }
-variable "cloudtrail_name" {
+variable "trail_name" {
   type = string
 }
-variable "aegis_key_arn" {
+variable "bucket_id" {
   type = string
 }
-variable "central_logs_bucket_name" {
+variable "s3_prefix" {
   type = string
+}
+variable "kms_key_arn" {
+  type = string
+}
+variable "include_global_service_events" {
+  type = bool
+}
+variable "is_multi_region_trail" {
+  type = bool
+}
+variable "enable_log_file_validation" {
+  type = bool
+}
+
+variable "event_selector" {
+  type = object({
+    data_resource = optional(object({
+      type   = string
+      values = list(string)
+    }))
+    exclude_management_event_sources = optional(list(string))
+    include_management_events        = bool
+    read_write_type                  = string
+  })
 }

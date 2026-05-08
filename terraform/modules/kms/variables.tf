@@ -1,20 +1,39 @@
-variable "name_prefix" {
+variable "prefix" {
+  type = string
+}
+variable "description" {
+  type    = string
+  default = null
+}
+variable "enable_key_rotation" {
+  type    = bool
+  default = true
+}
+variable "deletion_window_in_days" {
+  type    = number
+  default = 30
+}
+variable "key_alias" {
   type = string
 }
 
-variable "kms_key_alias" {
-  type        = string
-  description = "Alias name for the KMS key"
-}
+variable "key_policy" {
+  type = list(object({
+    sid       = string
+    effect    = string
+    actions   = list(string)
+    resources = optional(list(string))
 
-variable "main_username" {
-  type        = string
-  description = "Your username in the console"
-}
+    principals = object({
+      type        = string
+      identifiers = list(string)
+    })
 
-variable "cloudtrail_name" {
-  type = string
-}
-variable "central_logs_bucket_arn" {
-  type = string
+    conditions = list(object({
+      test     = string
+      variable = string
+      values   = list(string)
+    }))
+  }))
+  default = []
 }

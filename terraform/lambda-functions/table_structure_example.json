@@ -1,0 +1,35 @@
+{
+  "finding_id": {
+    "S": "ssh_rdp#8f6d7c2b-1234-4a7b-9cde-123456789abc"
+  },
+  "automation_name": {
+    "S": "ssh_rdp"
+  },
+  "source": {
+    "S": "cloudtrail"
+  },
+  "event_id": {
+    "S": "8f6d7c2b-1234-4a7b-9cde-123456789abc"
+  },
+  "event_name": {
+    "S": "AuthorizeSecurityGroupIngress"
+  },
+  "region": {
+    "S": "us-east-1"
+  },
+  "source_ip": {
+    "S": "203.0.113.10"
+  },
+  "status": {
+    "S": "claimed"
+  },
+  "first_seen_at": {
+    "S": "2026-05-07T18:42:11.123456+00:00"
+  },
+  "last_updated_at": {
+    "S": "2026-05-07T18:42:11.123456+00:00"
+  },
+  "ttl": {
+    "N": "1770230531"
+  }
+}

@@ -1,21 +1,20 @@
-data "aws_region" "current" {}
-data "aws_partition" "current" {}
-
 resource "aws_securityhub_account" "main" {
-  enable_default_standards  = false
-  control_finding_generator = "SECURITY_CONTROL"
+  region                    = var.region
+  enable_default_standards  = var.enable_default_standards
+  control_finding_generator = var.control_finding_generator
+  auto_enable_controls      = var.auto_enable_controls
 }
 
 resource "aws_securityhub_standards_subscription" "standards" {
-  for_each      = local.standards
-  standards_arn = each.value
+  for_each = toset(var.standards)
 
-  depends_on = [aws_securityhub_account.main]
+  standards_arn = each.value
+  depends_on    = [aws_securityhub_account.main]
 }
 
 resource "aws_securityhub_product_subscription" "products" {
-  for_each    = local.product_subscriptions
-  product_arn = each.value
+  for_each = toset(var.product_subscriptions)
 
-  depends_on = [aws_securityhub_account.main]
+  product_arn = each.value
+  depends_on  = [aws_securityhub_account.main]
 }

@@ -1,0 +1,30 @@
+{
+  "finding_id": "abcd1234",
+  "finding_type": "UnauthorizedAccess:EC2/MaliciousIPCaller.Custom",
+  "source": "guardduty",
+  "account_id": "123456789012",
+  "region": "us-east-1",
+  "resource_type": "ec2_instance",
+  "resource_id": "i-0123456789abcdef0",
+  "severity": 8.0,
+  "status": "remediating",
+  "remediation_actions": {
+    "tag_instance": "success",
+    "stop_instance": "success",
+    "replace_security_group": "success",
+    "detach_iam_profile": "success",
+    "create_snapshot": "success",
+    "send_notification": "success"
+  },
+  "snapshot_ids": [
+    "snap-0123456789abcdef0"
+  ],
+  "original_security_group_ids": [
+    "sg-11111111111111111"
+  ],
+  "quarantine_security_group_id": "sg-99999999999999999",
+  "original_iam_instance_profile": "my-instance-profile",
+  "first_seen_at": "2026-05-01T16:25:00Z",
+  "last_updated_at": "2026-05-01T16:27:30Z",
+  "ttl": 1770000000
+}

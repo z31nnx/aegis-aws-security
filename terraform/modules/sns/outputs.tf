@@ -1,7 +1,6 @@
-output "sns_alerts_high_topic_arn" {
-  value = aws_sns_topic.high.arn
+output "topic_arn" {
+  value = aws_sns_topic.topic.arn
 }
-
-output "sns_alerts_medium_topic_arn" {
-  value = aws_sns_topic.medium.arn
+output "topic_name" {
+  value = aws_sns_topic.topic.name
 }

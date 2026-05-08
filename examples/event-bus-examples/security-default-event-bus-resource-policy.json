@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowTargetAccountToPutEvents",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::TARGET_ACCOUNT_ID:root"
+      },
+      "Action": "events:PutEvents",
+      "Resource": "arn:aws:events:us-east-1:740525964217:event-bus/default"
+    }
+  ]
+}
