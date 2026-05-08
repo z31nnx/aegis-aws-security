@@ -30,11 +30,11 @@ variable "subnet_id" {
 }
 
 variable "metadata_http_tokens" {
-  type        = string
-  default     = "required"
+  type    = string
+  default = "required"
 }
 
 variable "root_block_device_encrypted" {
-  type        = bool
-  default     = true
+  type    = bool
+  default = true
 }
