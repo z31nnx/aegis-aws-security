@@ -49,6 +49,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 - [Prerequisites](#prerequisites)
 - [Implementation Details](#implementation-details)
 - [Validation & Testing](/docs/testing.md)
+- [MITRE ATT&CK](#mitre-attck-alignment)
 - [Runbook](/runbook.md)
 - [Troubleshooting](#troubleshooting)
 - [Costs & Environments](#costs--environments)
