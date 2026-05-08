@@ -1,7 +1,7 @@
 # Aegis — Centralized AWS Security Baseline & Auto-Remediation
 
 <p align="center">
-  <img src="./docs/diagrams/aegis-diagram-1.png" alt="Aegis architecture diagram" width="100%" />
+  <img src="./docs/diagrams/aegis-diagram-2.png" alt="Aegis architecture diagram" width="100%" />
 </p>
 <p align="center">
   <img src="https://img.shields.io/badge/Architecture-Event--Driven-black.svg" alt="Architecture Event-Driven" />
@@ -40,7 +40,8 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - **AWS Resource Tagging Standard v1.0.0**
 - **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but its part of the future plans. 
 - **Observability**: Dedicated cloudwatch dashboard with aggregated lambda automations and SNS alerts with metrics that uses errors, duration, throughput, and throttles. 
-[dashboard](./docs/diagrams/dashboard.png)
+
+![dashboard](./docs/diagrams/dashboard.png)
 
 ## Table of Contents 
 - [Terraform Modules](#terraform-modules)
@@ -153,13 +154,12 @@ terraform apply
 terraform destroy
 ```
 
-
 ## Runbook
 - See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
 
 ## Troubleshooting
 - **Terraform apply**: If you can't `terraform apply`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
-- **Multi-account**: Target accounts must have an **IAM role** that allows **lambda execution role** to assume that role with the necessary permission to remediate. **Default or custom event bus** in the target account should have rules that forward findings to the source (Aegis central security) event bus. Source account's event bus requires a resource based policy, that policy should allow the action of `"events:PutEvents"` from target account to source account's event bus. See permission -> [examples](./examples/) 
+- **Multi-account**: Target accounts must have an **IAM role** that allows **lambda execution role** to assume that role with the necessary permission to remediate. **Default or custom event bus** in the target account should have rules that forward findings to the source (Aegis central security) event bus. Source account's event bus requires a resource based policy, that policy should allow the action of `"events:PutEvents"` from target account to source account's event bus. See permission -> [examples](./examples/target-role-examples/target-inline-ssh-rdp.json) 
 - **Quarantine security group**: Aegis uses a dedicated quarantine security group for EC2 isolation. Each workload VPC in each target account must have its own quarantine security group. Security groups cannot be shared globally across accounts, regions, or VPCs. The quarantine SG must exist in the same account, region, and VPC as the compromised EC2 instance.
 
   The quarantine SG should use the following tags so the Lambda can discover it:
