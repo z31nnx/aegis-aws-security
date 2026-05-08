@@ -1,23 +1,3 @@
-data "aws_ami" "ami" {
-  most_recent = true
-  owners      = ["amazon"]
-
-  filter {
-    name   = "name"
-    values = ["al2023-ami-2023.*-kernel-*-x86_64"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-}
-
 resource "aws_instance" "instance" {
   ami                         = data.aws_ami.ami.image_id
   instance_type               = var.instance_type
@@ -27,6 +7,14 @@ resource "aws_instance" "instance" {
   vpc_security_group_ids      = var.vpc_security_group_ids
   iam_instance_profile        = var.iam_instance_profile
   associate_public_ip_address = var.associate_public_ip_address
+
+  metadata_options {
+    http_tokens = var.metadata_http_tokens
+  }
+
+  root_block_device {
+    encrypted = var.root_block_device_encrypted
+  }
 
   tags = {
     Name = "${var.prefix}-${var.instance_name}"
