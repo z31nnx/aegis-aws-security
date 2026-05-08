@@ -49,7 +49,7 @@ Because security is job zero, I wanted to implement what I have learned from my 
 - [Prerequisites](#prerequisites)
 - [Implementation Details](#implementation-details)
 - [Validation & Testing](/docs/testing.md)
-- [Runbook](/RUNBOOK.md)
+- [Runbook](/runbook.md)
 - [Troubleshooting](#troubleshooting)
 - [Costs & Environments](#costs--environments)
 - [Limitations & Enhancements](#limitations--future-enhancements)
@@ -165,7 +165,7 @@ Aegis maps selected detection and remediation scenarios to cloud-relevant MITRE 
 | SSH/RDP exposed to world | Attack surface reduction; supports mitigation against Initial Access paths |
 
 ## Runbook
-- See [RUNBOOK.md](./RUNBOOK.md) for details on how to handle events. 
+- See [runbook.md](./runbook.md) for details on how to handle events. 
 
 ## Troubleshooting
 - **Terraform apply**: If you can't `terraform apply`, have your AWS credentials and access/secret keys configured using your preferred CLI. Then rerun `terraform init` inside **./aegis-aws-security/terraform/envs/dev** folder.
