@@ -1,11 +1,6 @@
 variable "prefix" {
   type = string
 }
-
-variable "ami" {
-  type    = string
-  default = null
-}
 variable "instance_name" {
   type = string
 }
