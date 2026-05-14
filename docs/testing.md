@@ -1,5 +1,5 @@
 # Aegis Testing Guide
-This guide demonstrate how to test and validate each automated remediation with safe tests in the AWS console. Each scenario includes the steps, thought process, results, and screenshots. Ensure you have everything ready before going forward with this. See [Prerequisites](/README.md#prerequisites) for more details. 
+This guide demonstrates how to test and validate each automated remediation with safe tests in the AWS console. Each scenario includes the steps, thought process, results, and screenshots. Ensure you have everything ready before going forward with this. See [Prerequisites](/README.md#prerequisites) for more details. 
 
 # Table of Contents
 - [CloudTrail Tamper](/docs/testing.md#1-cloudtrail-tamper)
@@ -47,7 +47,7 @@ This guide demonstrate how to test and validate each automated remediation with 
 1. Head to GuardDuty console.
 2. Click on Settings and generate sample findings. 
 ![screenshot](./screenshots/crypto_1.png)
-3. The findings are generated quickly but the event takes about 2-5 mins (near-realtime) so your lambda should fire and an SNS email alert should be sent to you [Email detail.](./screenshots/email_crypto.png) 
+3. The findings are generated quickly but the event takes about 2-5 mins (near-realtime) so your Lambda should fire and an SNS email alert should be sent to you [Email detail.](./screenshots/email_crypto.png) 
 ![screenshot](./screenshots/crypto_2.png)
 
 ## 4. Manual EC2 Crypto Mining Isolation Test

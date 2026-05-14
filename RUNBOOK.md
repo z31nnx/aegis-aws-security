@@ -1,5 +1,5 @@
 # Aegis Runbook
-This is a lightweight runbook that defines the standard procedures for investigating and remediating security events detected and auto-remediated by Aegis. This uses the **NIST CSF 2.0 (Cybersecurity Framework)**. The NIST CSF Has 6 core functions: **Govern (new), Identify, Protect, Detect, Respond,** and **Recover**. 
+This is a lightweight runbook that defines the standard procedures for investigating and remediating security events detected and auto-remediated by Aegis. This uses the **NIST CSF 2.0 (Cybersecurity Framework)**. The NIST CSF has 6 core functions: **Govern (new), Identify, Protect, Detect, Respond,** and **Recover**. 
 
 ## Resources
 For detailed information,  see the links below.

@@ -18,7 +18,7 @@
 # Overview 
 A centralized AWS security foundation capable of multi-account detection and response, compliance (**AWS Config**), logging (**CloudTrail, S3**), security detection (**AWS GuardDuty**), real-time auto-remediation (**EventBridge + Lambda + SNS**) and centralized monitoring (**AWS Security Hub**).
 
-This project is designed to be deployed in a central security AWS cloud account and acts as a security operations platform with foundational security services baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The platform enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryptions (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilizes modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for near real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
+This project is designed to be deployed in a central security AWS cloud account and acts as a security operations platform with foundational security services baked in, all using **Terraform (IaC)**. I named it after **Aegis**, mythical shield device used by **Athena** and **Zeus**, fitting for a security project. The platform enforces baseline controls (**AWS Config**) for compliance, **S3** for central logs, one **KMS** key for encryption (cheaper, faster, easy to rotate), and three **Lambda** remediations that utilize modern architecture with **CloudTrail, EventBridge, Lambda** and **SNS** for near real time detection, remediation, and alerts. It solves security concerns such as open ports, log tampering, and malicious activity (**GuardDuty** CryptoCurrency/Bitcoin mining findings). 
 
 Because security is job zero, I wanted to implement what I have learned from my **AWS Certified Security Specialty** certification. Something that proves (secure-by-default), operations maturity, and results. From here, it bridges both my love for Cloud Computing and Cybersecurity. A runbook is also integrated aligning with the **NIST CSF 2.0**, something I learned in my **Google Cybersecurity Course** from **Coursera** and as a side with the adversary **MITRE ATT&CK Framework**.
 
@@ -34,12 +34,12 @@ Because security is job zero, I wanted to implement what I have learned from my 
   - SSH/RDP world-open guard for Security Groups (Port 22 & 3389) works for IPv4 `0.0.0.0/0` and IPv6 `::/0`.
   - GuardDuty CryptoCurrency (Bitcoin mining) findings (e.g. CryptoCurrency:EC2/BitcoinTool.B*). 
 - **Alerts:** Encrypted SNS topics ( CRITICAL/ HIGH / MED) with clear emails.
-- **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficient and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
+- **SecurityHub**: Enabled for centralized monitoring, two foundational standards and an additional resource tagging standard, and two product subscriptions (GuardDuty & Inspector). I have not added AWS Macie for cost efficiency and since there's no PII/SPII being handled here for this project. Enable Macie when handling sensitive info.
   - **CIS AWS Foundations Benchmark v1.4.0**
   - **AWS Foundational Security Best Practices v1.0.0**
   - **AWS Resource Tagging Standard v1.0.0**
-- **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but its part of the future plans. 
-- **Observability**: Dedicated CloudWatch dashboard with aggregated lambda automations and SNS alerts with metrics that uses errors, duration, throughput, and throttles. 
+- **Compliance (AWS Config):** Curated AWS managed rules for a baseline. Config Auto-remediation with SSM documents is not yet included but it's part of future plans. 
+- **Observability**: Dedicated CloudWatch dashboard with aggregated Lambda automations and SNS alerts with metrics that uses errors, duration, throughput, and throttles. 
 
 ![dashboard](./docs/diagrams/dashboard.png)
 
@@ -178,15 +178,15 @@ Aegis maps selected detection and remediation scenarios to cloud-relevant MITRE 
   Project = "aegis"
   Purpose = "quarantine"
   ```
-- **Crypto mining generated findings**: Sample findings using GuardDuty gets published to a default event-bus in 5 minutes. It is not automatic, EventBridge invokes Lambda after successful event publish.
-- **Crypto Mining Test Event**: each test event using the id under detail must be unique or DynamoDB captures duplicated event. An example in [crypto-test](/examples/test-events-examples/crypto-mining.json) uses a json format test event, read through it carefully and apply new changes after every test. 
+- **Crypto mining generated findings**: Sample findings using GuardDuty are published to a default event bus in 5 minutes. It is not automatic; EventBridge invokes Lambda after successful event publish.
+- **Crypto Mining Test Event**: Each test event using the id under detail must be unique or DynamoDB captures duplicated events. An example in [crypto-test](/examples/test-events-examples/crypto-mining.json) uses a JSON format test event, read through it carefully and apply new changes after every test. 
 - **SNS/Email Alerts**: Check if the two subscriptions are confirmed, sometimes it's buried under junk in your email. For GuardDuty findings, wait 2-5 mins. 
 - **Config errors**: Ensure the custom Config role exists; rerun `terraform apply`.
 - **Security Hub not enabled**: If for some reason its off,  just enable via console (this is normal, the standards and product subscriptions are still applied). Otherwise config must be enabled in order for Security Hub to work.
 - **Terraform destroy**: Ensure no instances are using the quarantine SG, else the destroy command fails. 
 
 ## Limitations & Future Enhancements
-- A Custom VPC but currently there are no workloads being deployed.
+- Custom VPC support is planned, but currently no workloads are deployed.
 - SCP for CloudTrail (AWS Organization required).
 - Add more remediation Lambdas (S3 public access detection, compromised IAM key, etc.).
 - Config automation via SSM documents. 
